@@ -7,14 +7,6 @@
 ---
 
 ## ⬇️ 下载
-
-> **⚠️ 重要：请下载 Assets 中的「模块包」，不要下载 Source code！**
-
-| ✅ 正确下载 | ❌ 错误下载 |
-|-----------|-----------|
-| `0_HMAPLUS-Fixed-xxx-模块包.zip` | Source code (zip / tar.gz) |
-| 可直接刷入 | 是源代码，无法刷入 |
-
 👉 [前往 Releases 下载](https://github.com/Mr-Du12/HMAPLUS-Fixed/releases/latest)
 
 ---
