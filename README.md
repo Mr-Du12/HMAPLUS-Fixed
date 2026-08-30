@@ -1,11 +1,6 @@
 <div align="center">
 
-# HMAPLUS-Fixed
-
-[![最新版本](https://img.shields.io/github/v/release/Mr-Du12/HMAPLUS-Fixed?label=最新版本&style=for-the-badge)](https://github.com/Mr-Du12/HMAPLUS-Fixed/releases/latest)
-[![下载量](https://img.shields.io/github/downloads/Mr-Du12/HMAPLUS-Fixed/total?style=for-the-badge)](https://github.com/Mr-Du12/HMAPLUS-Fixed/releases/latest)
-
-基于 HMA 的 Magisk/KernelSU 模块，开机自动清理黑名单应用的 data/obb/media 目录
+# HMAPLUS-Fixed基于 HMA 的 Magisk/KernelSU 模块，开机自动清理黑名单应用的 data/obb/media 目录
 
 </div>
 
@@ -53,7 +48,4 @@
 ---
 
 ## 📝 说明
-
 本模块基于 Hide My Applist 增强版修改，WebUI 重构，新增单实例保护等功能。
-
-原作者：酷安 [@小石不会搞机](https://www.coolapk.com/u/3888187)
