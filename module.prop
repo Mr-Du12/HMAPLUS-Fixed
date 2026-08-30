@@ -1,0 +1,5 @@
+id=HMAPLUS
+name=HMAPLUS-Fixed
+version=V2
+author=哒达鸭
+description=开机自动检查HMA配置下的APP目录，检测黑名单路径到自动清理 | WebUI重构
