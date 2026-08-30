@@ -1,7 +1,7 @@
 id=HMAPLUS
 name=HMAPLUS-Fixed
-version=V2.1
-versionCode=21
+version=V2.2
+versionCode=22
 author=哒达鸭
-description=开机自动检查HMA配置下的APP目录，检测黑名单路径到自动清理 | WebUI重构 | 单实例防重复进程
+description=开机自动检查HMA配置下的APP目录，检测黑名单路径到自动清理 | WebUI重构 | 单实例防重复进程 | 支持在线更新
 updateJson=https://raw.githubusercontent.com/Mr-Du12/HMAPLUS-Fixed/main/update.json
