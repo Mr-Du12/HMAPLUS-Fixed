@@ -17,7 +17,9 @@ jobs:
         run: |
           VERSION=$(grep '^version=' module.prop | cut -d= -f2-)
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "zip_name=HMAPLUS-Fixed-${VERSION}-模块包.zip" >> $GITHUB_OUTPUT
+          # 0_ 前缀确保在 Assets 列表中排最顶部（在 Source code 前面）
+          echo "zip_name=0_HMAPLUS-Fixed-${VERSION}-模块包.zip" >> $GITHUB_OUTPUT
+          echo "zip_disp=HMAPLUS-Fixed-${VERSION}-模块包.zip" >> $GITHUB_OUTPUT
 
       - name: Build module ZIP
         run: |
@@ -39,21 +41,34 @@ jobs:
           files: dist/*.zip
           generate_release_notes: true
           body: |
-            ## HMAPLUS-Fixed 模块
+            <div align="center">
 
-            **版本**: ${{ steps.version.outputs.version }}
+            # HMAPLUS-Fixed ${{ steps.version.outputs.version }}
 
-            ### ⬇️ 下载说明
+            ### ⬇️ 点击下方按钮下载模块包
 
-            > **重要**: 请下载下方 **Assets** 中的 `HMAPLUS-Fixed-${{ steps.version.outputs.version }}-模块包.zip`
-            >
-            > ❌ 不要下载 "Source code (zip)" 或 "Source code (tar.gz)"，那是源代码，无法直接刷入！
+            [![下载模块包](https://img.shields.io/badge/📥_下载模块安装包-2ea44f?style=for-the-badge)](https://github.com/Mr-Du12/HMAPLUS-Fixed/releases/download/${{ github.ref_name }}/${{ steps.version.outputs.zip_name }})
 
-            ### 📲 安装说明
-            1. 下载 **Assets** 中的模块 ZIP 包
+            </div>
+
+            ---
+
+            ## ⚠️ 重要提醒
+
+            | ✅ 正确下载 | ❌ 不要下载 |
+            |-----------|-----------|
+            | **Assets 中的 `0_HMAPLUS-Fixed-${{ steps.version.outputs.version }}-模块包.zip`** | Source code (zip) |
+            | 可以直接刷入 Magisk/KernelSU/SukiSU | 是源代码，解压后多一层文件夹，无法刷入 |
+
+            ---
+
+            ## 📲 安装说明
+
+            1. 点击上方绿色按钮下载模块 ZIP 包
             2. 在 Magisk / KernelSU / SukiSU 管理器中选择「从本地安装」
             3. 选择下载的 ZIP 包刷入
             4. 重启设备生效
 
-            ### ✨ 本次更新
-            - 详见 Release Notes / Commits
+            ---
+
+            ## ✨ 更新内容
