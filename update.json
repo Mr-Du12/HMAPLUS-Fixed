@@ -1,6 +1,6 @@
 {
-  "version": "V2.1",
-  "versionCode": 21,
-  "zipUrl": "https://github.com/Mr-Du12/HMAPLUS-Fixed/releases/latest/download/0_HMAPLUS-Fixed-V2.1-模块包.zip",
-  "changelog": "V2.1 更新说明：\n- 新增单实例保护，防止重复进程\n- 优化模块打包，可直接刷入\n- 完善 WebUI 界面"
+  "version": "V1.10",
+  "versionCode": 110,
+  "zipUrl": "https://github.com/Mr-Du12/HMAPLUS-Fixed/releases/latest/download/0_HMAPLUS-Fixed-V1.10-模块包.zip",
+  "changelog": "V1.10 更新：\n- 单实例保护，防止重复进程\n- 支持在线更新检测\n- WebUI 界面优化"
 }
