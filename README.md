@@ -1,6 +1,6 @@
 <div align="center">
 
-# HMAPLUS-Fixed基于 HMA 的 Magisk/KernelSU 模块，开机自动清理黑名单应用的 data/obb/media 目录
+# HMAPLUS-Fixed
 
 </div>
 
