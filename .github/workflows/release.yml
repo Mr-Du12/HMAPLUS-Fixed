@@ -17,17 +17,20 @@ jobs:
         run: |
           VERSION=$(grep '^version=' module.prop | cut -d= -f2-)
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "name=HMAPLUS-Fixed-$VERSION" >> $GITHUB_OUTPUT
+          echo "zip_name=HMAPLUS-Fixed-${VERSION}-模块包.zip" >> $GITHUB_OUTPUT
 
       - name: Build module ZIP
         run: |
           mkdir -p dist
-          zip -r "dist/${{ steps.version.outputs.name }}.zip" . \
+          # 在当前目录打包，文件直接在ZIP根目录（无外层文件夹），确保Magisk/KernelSU可直接刷入
+          zip -r "dist/${{ steps.version.outputs.zip_name }}" . \
             -x '*.git*' \
             -x '*.github*' \
             -x 'dist/*' \
             -x '*.DS_Store'
-          echo "✅ 打包完成: ${{ steps.version.outputs.name }}.zip"
+          echo "✅ 打包完成: ${{ steps.version.outputs.zip_name }}"
+          echo "📦 ZIP内容结构："
+          unzip -l "dist/${{ steps.version.outputs.zip_name }}"
 
       - name: Create Release
         if: startsWith(github.ref, 'refs/tags/')
@@ -36,14 +39,21 @@ jobs:
           files: dist/*.zip
           generate_release_notes: true
           body: |
-            ## HMAPLUS-Fixed 模块更新
+            ## HMAPLUS-Fixed 模块
 
             **版本**: ${{ steps.version.outputs.version }}
 
-            ### 安装说明
-            1. 下载下方 ZIP 包
-            2. 在 Magisk / KernelSU / SukiSU 管理器中刷入
-            3. 重启设备生效
+            ### ⬇️ 下载说明
 
-            ### 更新内容
-            - 详见 Commit 记录
+            > **重要**: 请下载下方 **Assets** 中的 `HMAPLUS-Fixed-${{ steps.version.outputs.version }}-模块包.zip`
+            >
+            > ❌ 不要下载 "Source code (zip)" 或 "Source code (tar.gz)"，那是源代码，无法直接刷入！
+
+            ### 📲 安装说明
+            1. 下载 **Assets** 中的模块 ZIP 包
+            2. 在 Magisk / KernelSU / SukiSU 管理器中选择「从本地安装」
+            3. 选择下载的 ZIP 包刷入
+            4. 重启设备生效
+
+            ### ✨ 本次更新
+            - 详见 Release Notes / Commits
