@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>HMA+ 配置中心</title>
+    <style>
+        :root {
+            --bg: #f0f2f8;
+            --card: #ffffff;
+            --text: #1a1a2e;
+            --sub: #8e8ea0;
+            --blue: #5b6abf;
+            --red: #e74c5e;
+            --red-bg: #fde8ea;
+            --green: #34c77b;
+            --green-bg: #e6f9ee;
+            --orange: #f5a623;
+            --input: #f5f6fa;
+            --border: rgba(0,0,0,0.06);
+            --shadow: rgba(91,106,191,0.08);
+            --shadow-lg: rgba(91,106,191,0.12);
+            --overlay: rgba(0,0,0,0.5);
+        }
+
+        body.dark-mode {
+            --bg: #12121a;
+            --card: #1e1e2e;
+            --text: #e0e0f0;
+            --sub: #7a7a90;
+            --blue: #7b8ad4;
+            --red: #f06070;
+            --red-bg: #2e1a1e;
+            --green: #40d88a;
+            --green-bg: #1a2e22;
+            --orange: #f5b840;
+            --input: #252538;
+            --border: rgba(255,255,255,0.08);
+            --shadow: rgba(0,0,0,0.3);
+            --shadow-lg: rgba(0,0,0,0.4);
+            --overlay: rgba(0,0,0,0.7);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: -apple-system, 'SF Pro Display', 'Noto Sans SC', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            padding-bottom: 160px;
+            -webkit-tap-highlight-color: transparent;
+            transition: background 0.3s, color 0.3s;
+        }
+
+        .header {
+            padding: 50px 20px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .header-left h1 {
+            font-size: 28px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            color: var(--text);
+        }
+
+        .header-left .subtitle {
+            font-size: 13px;
+            color: var(--sub);
+            margin-top: 4px;
+        }
+
+        .header-right {
+            display: flex;
+            gap: 10px;
+            margin-top: 4px;
+        }
+
+        .icon-btn {
+            width: 42px;
+            height: 42px;
+            border-radius: 14px;
+            background: var(--card);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid var(--border);
+            box-shadow: 0 2px 8px var(--shadow);
+            cursor: pointer;
+            transition: transform 0.15s, opacity 0.15s;
+            color: var(--text);
+        }
+        .icon-btn:active { transform: scale(0.9); opacity: 0.7; }
+
+        @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .loading { animation: rotate 1s linear infinite; }
+
+        .stats-row {
+            display: flex;
+            gap: 12px;
+            padding: 0 20px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            flex: 1;
+            background: var(--card);
+            border-radius: 16px;
+            padding: 16px 14px;
+            box-shadow: 0 2px 12px var(--shadow);
+            border: 1px solid var(--border);
+            text-align: center;
+            transition: transform 0.15s;
+        }
+        .stat-card:active { transform: scale(0.97); }
+
+        .stat-card .stat-value {
+            font-size: 26px;
+            font-weight: 800;
+            line-height: 1.2;
+        }
+
+        .stat-card .stat-label {
+            font-size: 12px;
+            color: var(--sub);
+            margin-top: 4px;
+        }
+
+        .stat-card.pid .stat-value { color: var(--blue); }
+        .stat-card.blacklist .stat-value { color: var(--red); }
+        .stat-card.whitelist .stat-value { color: var(--green); }
+
+        .stat-badge {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 4px;
+            vertical-align: middle;
+        }
+        .stat-badge.pid { background: var(--blue); }
+        .stat-badge.blacklist { background: var(--red); }
+        .stat-badge.whitelist { background: var(--green); }
+
+        .search-wrap {
+            padding: 0 20px;
+            margin-bottom: 16px;
+        }
+
+        .search-bar {
+            width: 100%;
+            height: 48px;
+            border-radius: 14px;
+            border: 1px solid var(--border);
+            background: var(--input);
+            color: var(--text);
+            padding: 0 16px 0 44px;
+            font-size: 15px;
+            outline: none;
+            box-shadow: 0 2px 8px var(--shadow);
+            transition: border-color 0.2s;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%238e8ea0' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: 14px center;
+        }
+        .search-bar:focus { border-color: var(--blue); }
+        .search-bar::placeholder { color: var(--sub); }
+
+        .tabs {
+            display: flex;
+            gap: 8px;
+            padding: 0 20px;
+            margin-bottom: 16px;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        .tabs::-webkit-scrollbar { display: none; }
+
+        .tab {
+            padding: 8px 18px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            white-space: nowrap;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid var(--border);
+            background: var(--card);
+            color: var(--sub);
+        }
+        .tab.active {
+            background: var(--blue);
+            color: #fff;
+            border-color: var(--blue);
+        }
+        .tab:active { transform: scale(0.95); }
+
+        .tab .tab-count {
+            margin-left: 4px;
+            opacity: 0.8;
+        }
+
+        #list {
+            padding: 0 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .app-card {
+            background: var(--card);
+            border-radius: 16px;
+            padding: 14px 16px;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 2px 10px var(--shadow);
+            border: 1px solid var(--border);
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+        .app-card:active { transform: scale(0.98); }
+
+        .app-icon {
+            width: 46px;
+            height: 46px;
+            border-radius: 14px;
+            margin-right: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-weight: 800;
+            font-size: 18px;
+            flex-shrink: 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+
+        .app-pkg {
+            flex: 1;
+            font-size: 13px;
+            color: var(--text);
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            word-break: break-all;
+            min-width: 0;
+        }
+
+        .cb {
+            width: 26px;
+            height: 26px;
+            border: 2.5px solid var(--sub);
+            border-radius: 8px;
+            position: relative;
+            transition: all 0.2s;
+            flex-shrink: 0;
+            margin-left: 10px;
+        }
+        .cb.active {
+            background: var(--green);
+            border-color: var(--green);
+        }
+        .cb.active::after {
+            content: '';
+            position: absolute;
+            width: 6px;
+            height: 11px;
+            border: 2.5px solid #fff;
+            border-top: 0;
+            border-left: 0;
+            left: 8px;
+            top: 3px;
+            transform: rotate(45deg);
+        }
+
+        .bottom-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--card);
+            border-top: 1px solid var(--border);
+            padding: 12px 20px;
+            padding-bottom: max(12px, env(safe-area-inset-bottom));
+            box-shadow: 0 -4px 20px var(--shadow);
+            z-index: 200;
+        }
+
+        .bottom-stats {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .bottom-stat {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            color: var(--sub);
+        }
+
+        .bottom-stat .bs-value {
+            font-weight: 700;
+            font-size: 16px;
+        }
+
+        .bottom-stat.clean .bs-value { color: var(--orange); }
+
+        .save-btn {
+            width: 100%;
+            height: 52px;
+            background: linear-gradient(135deg, #5b6abf, #7b8ad4);
+            color: #fff;
+            border: none;
+            border-radius: 16px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 4px 16px rgba(91,106,191,0.3);
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+        .save-btn:active {
+            transform: scale(0.97);
+            box-shadow: 0 2px 8px rgba(91,106,191,0.2);
+        }
+
+        .theme-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            z-index: 300;
+            background: var(--overlay);
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+        .theme-overlay.show { display: flex; }
+
+        .theme-box {
+            background: var(--card);
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            box-shadow: 0 10px 40px var(--shadow-lg);
+            overflow: hidden;
+            width: 280px;
+            animation: modalIn 0.25s ease;
+        }
+
+        .theme-box .tb-header {
+            padding: 20px 20px 10px;
+            font-size: 17px;
+            font-weight: 700;
+            text-align: center;
+            color: var(--text);
+        }
+
+        .theme-item {
+            padding: 16px 20px;
+            font-size: 15px;
+            border-bottom: 1px solid var(--border);
+            color: var(--text);
+            cursor: pointer;
+            transition: background 0.15s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .theme-item:last-child { border-bottom: none; }
+        .theme-item:active { background: var(--input); }
+        .theme-item.active { color: var(--blue); font-weight: 600; }
+        .theme-item .check {
+            margin-left: auto;
+            opacity: 0;
+            color: var(--blue);
+        }
+        .theme-item.active .check { opacity: 1; }
+
+        .theme-close {
+            padding: 14px;
+            text-align: center;
+            font-size: 15px;
+            color: var(--blue);
+            font-weight: 600;
+            cursor: pointer;
+            border-top: 1px solid var(--border);
+        }
+        .theme-close:active { background: var(--input); }
+
+        .about-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            z-index: 400;
+            background: var(--overlay);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .about-overlay.show { display: flex; }
+
+        .about-box {
+            background: var(--card);
+            border-radius: 24px;
+            border: 1px solid var(--border);
+            box-shadow: 0 10px 40px var(--shadow-lg);
+            overflow: hidden;
+            width: 100%;
+            max-width: 360px;
+            animation: modalIn 0.25s ease;
+        }
+
+        @keyframes modalIn {
+            from { opacity: 0; transform: scale(0.9) translateY(20px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        .about-header {
+            padding: 28px 24px 20px;
+            text-align: center;
+        }
+
+        .about-icon {
+            width: 64px;
+            height: 64px;
+            border-radius: 18px;
+            background: linear-gradient(135deg, #5b6abf, #7b8ad4);
+            margin: 0 auto 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 28px;
+            font-weight: 800;
+            box-shadow: 0 4px 16px rgba(91,106,191,0.3);
+        }
+
+        .about-title {
+            font-size: 22px;
+            font-weight: 800;
+            color: var(--text);
+        }
+
+        .about-subtitle {
+            font-size: 14px;
+            color: var(--sub);
+            margin-top: 4px;
+        }
+
+        .about-version {
+            font-size: 14px;
+            color: var(--blue);
+            margin-top: 6px;
+            font-weight: 600;
+        }
+
+        .about-author {
+            font-size: 14px;
+            color: var(--sub);
+            margin-top: 6px;
+        }
+
+        .about-author .author-name {
+            color: var(--blue);
+            font-weight: 600;
+        }
+
+        .about-notice {
+            margin: 16px 20px;
+            padding: 14px 16px;
+            background: var(--input);
+            border-radius: 12px;
+            font-size: 13px;
+            color: var(--sub);
+            line-height: 1.6;
+        }
+
+        .about-links {
+            display: flex;
+            padding: 0 20px;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .link-btn {
+            flex: 1;
+            height: 48px;
+            border-radius: 14px;
+            border: none;
+            font-size: 15px;
+            font-weight: 600;
+            color: #fff;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: transform 0.15s, opacity 0.15s;
+            text-decoration: none;
+        }
+        .link-btn:active { transform: scale(0.96); opacity: 0.85; }
+
+        .link-btn.coolapk {
+            background: linear-gradient(135deg, #4caf50, #43a047);
+            box-shadow: 0 4px 12px rgba(76,175,80,0.25);
+        }
+
+        .about-credits {
+            padding: 0 20px 16px;
+        }
+
+        .credits-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 8px;
+        }
+
+        .credits-content {
+            padding: 14px 16px;
+            background: var(--input);
+            border-radius: 12px;
+            font-size: 13px;
+            color: var(--sub);
+            line-height: 1.7;
+        }
+
+        .credits-content .credit-name {
+            color: var(--blue);
+            font-weight: 600;
+        }
+
+        .about-close {
+            padding: 16px;
+            text-align: center;
+            font-size: 15px;
+            color: var(--blue);
+            font-weight: 600;
+            cursor: pointer;
+            border-top: 1px solid var(--border);
+        }
+        .about-close:active { background: var(--input); }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--sub);
+        }
+        .empty-state .empty-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+        .empty-state .empty-text {
+            font-size: 15px;
+        }
+
+        .loading-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--sub);
+        }
+        .spinner {
+            width: 36px;
+            height: 36px;
+            border: 3px solid var(--border);
+            border-top-color: var(--blue);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 12px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .toast {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.9);
+            background: rgba(0,0,0,0.8);
+            color: #fff;
+            padding: 14px 28px;
+            border-radius: 12px;
+            font-size: 14px;
+            z-index: 999;
+            opacity: 0;
+            transition: all 0.3s;
+            pointer-events: none;
+        }
+        .toast.show {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-left">
+            <h1>HMA+ 配置中心</h1>
+            <div class="subtitle">Hide My Applist 增强版 · 智能清理</div>
+        </div>
+        <div class="header-right">
+            <div class="icon-btn" onclick="refreshAppList(event)" title="刷新应用列表">
+                <svg id="refresh-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M23 4v6h-6"></path>
+                    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                </svg>
+            </div>
+            <div class="icon-btn" onclick="showThemePicker()" title="切换主题">
+                <svg id="theme-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="4"></circle>
+                    <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path>
+                </svg>
+            </div>
+            <div class="icon-btn" onclick="showAbout()" title="关于">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="16" x2="12" y2="12"></line>
+                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                </svg>
+            </div>
+        </div>
+    </div>
+
+    <div class="stats-row">
+        <div class="stat-card pid">
+            <div class="stat-value" id="stat-pid">--</div>
+            <div class="stat-label"><span class="stat-badge pid"></span>进程 PID</div>
+        </div>
+        <div class="stat-card blacklist">
+            <div class="stat-value" id="stat-blacklist">0</div>
+            <div class="stat-label"><span class="stat-badge blacklist"></span>黑名单</div>
+        </div>
+        <div class="stat-card whitelist">
+            <div class="stat-value" id="stat-whitelist">0</div>
+            <div class="stat-label"><span class="stat-badge whitelist"></span>白名单</div>
+        </div>
+    </div>
+
+    <div class="search-wrap">
+        <input type="search" class="search-bar" id="search" placeholder="搜索包名...">
+    </div>
+
+    <div class="tabs" id="tabs">
+        <div class="tab active" data-filter="all" onclick="switchTab('all', this)">
+            全部<span class="tab-count" id="tab-all-count">0</span>
+        </div>
+        <div class="tab" data-filter="blacklist" onclick="switchTab('blacklist', this)">
+            黑名单<span class="tab-count" id="tab-bl-count">0</span>
+        </div>
+        <div class="tab" data-filter="whitelist" onclick="switchTab('whitelist', this)">
+            白名单<span class="tab-count" id="tab-wl-count">0</span>
+        </div>
+    </div>
+
+    <div id="list">
+        <div class="loading-state">
+            <div class="spinner"></div>
+            <div>正在加载...</div>
+        </div>
+    </div>
+
+    <div class="bottom-bar">
+        <div class="bottom-stats">
+            <div class="bottom-stat clean">
+                <span>已清理</span>
+                <span class="bs-value" id="stat-cleaned">0</span>
+                <span>项</span>
+            </div>
+            <div class="bottom-stat">
+                <span>共</span>
+                <span class="bs-value" id="stat-total">0</span>
+                <span>个应用</span>
+            </div>
+        </div>
+        <button class="save-btn" id="save-btn">保存并应用配置</button>
+    </div>
+
+    <div class="theme-overlay" id="theme-overlay" onclick="closeThemePicker()">
+        <div class="theme-box" onclick="event.stopPropagation()">
+            <div class="tb-header">切换主题</div>
+            <div class="theme-item" id="theme-light" onclick="changeTheme('light')">
+                ☀️ 浅色模式
+                <span class="check">✓</span>
+            </div>
+            <div class="theme-item" id="theme-dark" onclick="changeTheme('dark')">
+                🌙 深色模式
+                <span class="check">✓</span>
+            </div>
+            <div class="theme-item" id="theme-auto" onclick="changeTheme('auto')">
+                🌓 跟随系统
+                <span class="check">✓</span>
+            </div>
+            <div class="theme-close" onclick="closeThemePicker()">关闭</div>
+        </div>
+    </div>
+
+    <div class="about-overlay" id="about-overlay" onclick="closeAbout()">
+        <div class="about-box" onclick="event.stopPropagation()">
+            <div class="about-header">
+                <div class="about-icon">H+</div>
+                <div class="about-title" id="about-title">HMA-Fixed</div>
+                <div class="about-subtitle">Hide My Applist 增强版 · 智能清理</div>
+                <div class="about-version" id="about-version">版本 V2</div>
+                <div class="about-author">作者：<span class="author-name" id="about-author">哒达鸭</span></div>
+            </div>
+
+            <div class="about-notice" id="about-notice">
+                本模块基于 Hide My Applist 增强版，开机自动检查 HMA 配置下的应用目录，检测黑名单路径并自动清理。本 WebUI 与 HMA 模块本身无关，如有问题请不要向 HMA 原作者反馈。
+            </div>
+
+            <div class="about-links">
+                <div class="link-btn coolapk" onclick="openCoolapk()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15h-2v-6h2v6zm4 0h-2v-6h2v6zm-2-8c-.83 0-1.5-.67-1.5-1.5S12.67 6 13.5 6 15 6.67 15 7.5 14.33 9 13.5 9z"/></svg>
+                    酷安主页
+                </div>
+            </div>
+
+            <div class="about-credits">
+                <div class="credits-title">特别鸣谢</div>
+                <div class="credits-content">
+                    原模块来自酷安<span class="credit-name">@小石不会搞机</span>，作者对此模块修复bug/Web UI进行重置，后续有任何问题留言反馈。
+                </div>
+            </div>
+
+            <div class="about-close" onclick="closeAbout()">关闭</div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 2500);
+        }
+
+        function applyTheme(mode) {
+            const b = document.body;
+            b.classList.remove('dark-mode');
+            if (mode === 'dark') b.classList.add('dark-mode');
+            if (mode === 'auto' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                b.classList.add('dark-mode');
+            }
+            ['light', 'dark', 'auto'].forEach(m => {
+                document.getElementById('theme-' + m).classList.toggle('active', mode === m);
+            });
+        }
+
+        function changeTheme(mode) {
+            applyTheme(mode);
+            localStorage.setItem('hma_theme', mode);
+            closeThemePicker();
+        }
+
+        function showThemePicker() {
+            document.getElementById('theme-overlay').classList.add('show');
+        }
+
+        function closeThemePicker() {
+            document.getElementById('theme-overlay').classList.remove('show');
+        }
+
+        function showAbout() {
+            document.getElementById('about-overlay').classList.add('show');
+        }
+
+        function closeAbout() {
+            document.getElementById('about-overlay').classList.remove('show');
+        }
+
+        function openCoolapk() {
+            if (window.ksu) {
+                ksu.exec('am start -a android.intent.action.VIEW -d https://www.coolapk.com/u/3888187');
+            } else {
+                window.open('https://www.coolapk.com/u/3888187', '_blank');
+            }
+        }
+
+        async function loadModuleInfo() {
+            try {
+                const res = await fetch('./module_info.json?t=' + Date.now());
+                const info = await res.json();
+                if (info.name) document.getElementById('about-title').textContent = info.name;
+                if (info.version) document.getElementById('about-version').textContent = '版本 ' + info.version;
+                if (info.author) document.getElementById('about-author').textContent = info.author;
+                if (info.description) document.getElementById('about-notice').textContent = info.description;
+            } catch (e) {}
+        }
+
+        (function initTheme() {
+            const saved = localStorage.getItem('hma_theme') || 'auto';
+            applyTheme(saved);
+        })();
+
+        const colorPalette = [
+            '#FF6B6B', '#FF8E53', '#FFBE53', '#4ECDC4', '#45B7D1',
+            '#6A89CC', '#9B59B6', '#F78FB3', '#32FF7E', '#706fd3',
+            '#e056a0', '#22a6b3', '#f0932b', '#6ab04c', '#eb4d4b'
+        ];
+
+        function getAppColor(pkg) {
+            let hash = 0;
+            for (let i = 0; i < pkg.length; i++) hash = pkg.charCodeAt(i) + ((hash << 5) - hash);
+            return colorPalette[Math.abs(hash) % colorPalette.length];
+        }
+
+        let apps = [];
+        let whiteSet = new Set();
+        let blacklistSet = new Set();
+        let currentFilter = 'all';
+        let stats = { pid: '--', blacklist: 0, whitelist: 0, cleaned: 0 };
+
+        async function init() {
+            loadModuleInfo();
+            try {
+                const [rawRes, wRes, blRes, sRes] = await Promise.all([
+                    fetch('./app_raw.txt?t=' + Date.now()),
+                    fetch('./WhiteList_web.json?t=' + Date.now()),
+                    fetch('./blacklist.json?t=' + Date.now()).catch(() => null),
+                    fetch('./stats.json?t=' + Date.now()).catch(() => null)
+                ]);
+
+                whiteSet = new Set(await wRes.json());
+
+                const rawText = await rawRes.text();
+                const allPkgs = rawText.split('\n').map(l => l.trim()).filter(l => l.length > 2);
+                const filteredPkgs = allPkgs.filter(pkg => {
+                    const p = pkg.toLowerCase();
+                    return !(p.startsWith('android') || p.startsWith('com.android') || p.startsWith('com.google.android') || p.includes('overlay'));
+                });
+
+                if (blRes) {
+                    const blData = await blRes.json();
+                    blacklistSet = new Set(blData);
+                }
+
+                if (sRes) {
+                    stats = await sRes.json();
+                }
+
+                apps = filteredPkgs
+                    .filter(pkg => blacklistSet.has(pkg))
+                    .sort((a, b) => a.localeCompare(b));
+
+                document.getElementById('stat-pid').textContent = stats.pid || '--';
+                document.getElementById('stat-blacklist').textContent = stats.blacklist || 0;
+                document.getElementById('stat-whitelist').textContent = stats.whitelist || 0;
+                document.getElementById('stat-cleaned').textContent = stats.cleaned || 0;
+                document.getElementById('stat-total').textContent = apps.length;
+
+                document.getElementById('tab-all-count').textContent = apps.length;
+                document.getElementById('tab-bl-count').textContent = blacklistSet.size;
+                document.getElementById('tab-wl-count').textContent = whiteSet.size;
+
+                render();
+            } catch (e) {
+                document.getElementById('list').innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon"></div>
+                        <div class="empty-text">列表为空，请点击上方按钮刷新扫描。</div>
+                    </div>`;
+            }
+        }
+
+        function render(kw = '') {
+            const listEl = document.getElementById('list');
+            listEl.innerHTML = '';
+
+            const filtered = apps.filter(pkg => {
+                const kwLower = kw.toLowerCase();
+                const matchSearch = !kw || pkg.toLowerCase().includes(kwLower);
+                if (!matchSearch) return false;
+                if (currentFilter === 'whitelist') return whiteSet.has(pkg);
+                return true;
+            });
+
+            if (filtered.length === 0) {
+                listEl.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">🔍</div>
+                        <div class="empty-text">没有找到匹配的包名</div>
+                    </div>`;
+                return;
+            }
+
+            filtered.forEach(pkg => {
+                const card = document.createElement('div');
+                card.className = 'app-card';
+                const isWhite = whiteSet.has(pkg);
+                const char = pkg.split('.').pop().charAt(0).toUpperCase();
+                const color = getAppColor(pkg);
+
+                card.innerHTML = `
+                    <div class="app-icon" style="background:${color}">${char}</div>
+                    <div class="app-pkg">${escHtml(pkg)}</div>
+                    <div class="cb ${isWhite ? 'active' : ''}"></div>
+                `;
+
+                card.onclick = () => {
+                    if (whiteSet.has(pkg)) {
+                        whiteSet.delete(pkg);
+                    } else {
+                        whiteSet.add(pkg);
+                    }
+                    card.querySelector('.cb').classList.toggle('active');
+                    document.getElementById('stat-whitelist').textContent = whiteSet.size;
+                    document.getElementById('tab-wl-count').textContent = whiteSet.size;
+                };
+
+                listEl.appendChild(card);
+            });
+        }
+
+        function escHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        function switchTab(filter, el) {
+            currentFilter = filter;
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            el.classList.add('active');
+            render(document.getElementById('search').value);
+        }
+
+        async function refreshAppList(e) {
+            e.stopPropagation();
+            if (!window.ksu) return showToast("请在 KernelSU 环境下使用");
+
+            const icon = document.getElementById('refresh-icon');
+            icon.classList.add('loading');
+
+            const cmd = `pm list packages -3 --user 0 | cut -d: -f2 | sort -u > /data/adb/modules/HMAPLUS/webroot/app_raw.txt && chmod 666 /data/adb/modules/HMAPLUS/webroot/app_raw.txt`;
+
+            try {
+                await ksu.exec(cmd);
+                showToast("刷新成功");
+                setTimeout(() => location.reload(), 800);
+            } catch (err) {
+                showToast("刷新失败: " + err);
+                icon.classList.remove('loading');
+            }
+        }
+
+        document.getElementById('search').oninput = e => render(e.target.value);
+
+        document.getElementById('save-btn').onclick = async () => {
+            const sel = Array.from(whiteSet).map(s => s.trim().replace(/[^a-zA-Z0-9._-]/g, ''));
+            const json = JSON.stringify(sel).replace(/"/g, '\\"');
+            const cmd = `echo "${json}" > /data/adb/modules/HMAPLUS/webroot/WhiteList_web.json && chmod 666 /data/adb/modules/HMAPLUS/webroot/WhiteList_web.json && sh /data/adb/modules/HMAPLUS/service.sh trigger`;
+
+            if (window.ksu) {
+                await ksu.exec(cmd);
+                showToast("配置已应用！");
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                showToast("请在 KernelSU 环境下使用");
+            }
+        };
+
+        init();
+    </script>
+</body>
+</html>
