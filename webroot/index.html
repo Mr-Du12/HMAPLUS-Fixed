@@ -53,6 +53,7 @@
             transition: background 0.3s, color 0.3s;
         }
 
+        /* ===== 头部 ===== */
         .header {
             padding: 50px 20px 20px;
             display: flex;
@@ -98,6 +99,7 @@
         @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         .loading { animation: rotate 1s linear infinite; }
 
+        /* ===== 统计卡片 ===== */
         .stats-row {
             display: flex;
             gap: 12px;
@@ -145,6 +147,7 @@
         .stat-badge.blacklist { background: var(--red); }
         .stat-badge.whitelist { background: var(--green); }
 
+        /* ===== 搜索框 ===== */
         .search-wrap {
             padding: 0 20px;
             margin-bottom: 16px;
@@ -169,6 +172,7 @@
         .search-bar:focus { border-color: var(--blue); }
         .search-bar::placeholder { color: var(--sub); }
 
+        /* ===== 分类标签 ===== */
         .tabs {
             display: flex;
             gap: 8px;
@@ -203,6 +207,7 @@
             opacity: 0.8;
         }
 
+        /* ===== 应用列表 ===== */
         #list {
             padding: 0 20px;
             display: flex;
@@ -273,6 +278,7 @@
             transform: rotate(45deg);
         }
 
+        /* ===== 底部状态栏 ===== */
         .bottom-bar {
             position: fixed;
             bottom: 0;
@@ -326,6 +332,7 @@
             box-shadow: 0 2px 8px rgba(91,106,191,0.2);
         }
 
+        /* ===== 主题切换弹窗 ===== */
         .theme-overlay {
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
@@ -387,6 +394,7 @@
         }
         .theme-close:active { background: var(--input); }
 
+        /* ===== 关于页面 ===== */
         .about-overlay {
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
@@ -465,6 +473,7 @@
             font-weight: 600;
         }
 
+        /* 信息提示框 */
         .about-notice {
             margin: 16px 20px;
             padding: 14px 16px;
@@ -475,6 +484,7 @@
             line-height: 1.6;
         }
 
+        /* 酷安按钮 */
         .about-links {
             display: flex;
             padding: 0 20px;
@@ -505,6 +515,12 @@
             box-shadow: 0 4px 12px rgba(76,175,80,0.25);
         }
 
+        .link-btn.github {
+            background: linear-gradient(135deg, #333, #24292e);
+            box-shadow: 0 4px 12px rgba(36,41,46,0.25);
+        }
+
+        /* 特别鸣谢 */
         .about-credits {
             padding: 0 20px 16px;
         }
@@ -530,6 +546,7 @@
             font-weight: 600;
         }
 
+        /* 关闭按钮 */
         .about-close {
             padding: 16px;
             text-align: center;
@@ -541,6 +558,7 @@
         }
         .about-close:active { background: var(--input); }
 
+        /* ===== 空状态 ===== */
         .empty-state {
             text-align: center;
             padding: 60px 20px;
@@ -554,6 +572,7 @@
             font-size: 15px;
         }
 
+        /* ===== 加载动画 ===== */
         .loading-state {
             text-align: center;
             padding: 60px 20px;
@@ -570,6 +589,7 @@
         }
         @keyframes spin { to { transform: rotate(360deg); } }
 
+        /* ===== Toast ===== */
         .toast {
             position: fixed;
             top: 50%;
@@ -592,6 +612,7 @@
     </style>
 </head>
 <body>
+    <!-- 头部 -->
     <div class="header">
         <div class="header-left">
             <h1>HMA+ 配置中心</h1>
@@ -620,6 +641,7 @@
         </div>
     </div>
 
+    <!-- 统计卡片 -->
     <div class="stats-row">
         <div class="stat-card pid">
             <div class="stat-value" id="stat-pid">--</div>
@@ -635,10 +657,12 @@
         </div>
     </div>
 
+    <!-- 搜索框 -->
     <div class="search-wrap">
         <input type="search" class="search-bar" id="search" placeholder="搜索包名...">
     </div>
 
+    <!-- 分类标签 -->
     <div class="tabs" id="tabs">
         <div class="tab active" data-filter="all" onclick="switchTab('all', this)">
             全部<span class="tab-count" id="tab-all-count">0</span>
@@ -651,6 +675,7 @@
         </div>
     </div>
 
+    <!-- 应用列表 -->
     <div id="list">
         <div class="loading-state">
             <div class="spinner"></div>
@@ -658,6 +683,7 @@
         </div>
     </div>
 
+    <!-- 底部操作栏 -->
     <div class="bottom-bar">
         <div class="bottom-stats">
             <div class="bottom-stat clean">
@@ -674,6 +700,7 @@
         <button class="save-btn" id="save-btn">保存并应用配置</button>
     </div>
 
+    <!-- 主题切换弹窗 -->
     <div class="theme-overlay" id="theme-overlay" onclick="closeThemePicker()">
         <div class="theme-box" onclick="event.stopPropagation()">
             <div class="tb-header">切换主题</div>
@@ -693,6 +720,7 @@
         </div>
     </div>
 
+    <!-- 关于页面 -->
     <div class="about-overlay" id="about-overlay" onclick="closeAbout()">
         <div class="about-box" onclick="event.stopPropagation()">
             <div class="about-header">
@@ -712,6 +740,10 @@
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15h-2v-6h2v6zm4 0h-2v-6h2v6zm-2-8c-.83 0-1.5-.67-1.5-1.5S12.67 6 13.5 6 15 6.67 15 7.5 14.33 9 13.5 9z"/></svg>
                     酷安主页
                 </div>
+                <div class="link-btn github" onclick="openGithub()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+                    GitHub
+                </div>
             </div>
 
             <div class="about-credits">
@@ -725,9 +757,11 @@
         </div>
     </div>
 
+    <!-- Toast -->
     <div class="toast" id="toast"></div>
 
     <script>
+        // ===== 工具函数 =====
         function showToast(msg) {
             const t = document.getElementById('toast');
             t.textContent = msg;
@@ -735,6 +769,7 @@
             setTimeout(() => t.classList.remove('show'), 2500);
         }
 
+        // ===== 主题控制 =====
         function applyTheme(mode) {
             const b = document.body;
             b.classList.remove('dark-mode');
@@ -742,6 +777,7 @@
             if (mode === 'auto' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
                 b.classList.add('dark-mode');
             }
+            // 更新选中状态
             ['light', 'dark', 'auto'].forEach(m => {
                 document.getElementById('theme-' + m).classList.toggle('active', mode === m);
             });
@@ -761,6 +797,7 @@
             document.getElementById('theme-overlay').classList.remove('show');
         }
 
+        // ===== 关于页面 =====
         function showAbout() {
             document.getElementById('about-overlay').classList.add('show');
         }
@@ -769,14 +806,30 @@
             document.getElementById('about-overlay').classList.remove('show');
         }
 
+        // 酷安主页跳转
         function openCoolapk() {
             if (window.ksu) {
+                // KernelSU 环境下用 ksu.exec 打开浏览器
                 ksu.exec('am start -a android.intent.action.VIEW -d https://www.coolapk.com/u/3888187');
             } else {
+                // 普通浏览器环境
                 window.open('https://www.coolapk.com/u/3888187', '_blank');
             }
         }
 
+        // GitHub 主页跳转
+        function openGithub() {
+            const url = 'https://github.com/Mr-Du12/HMAPLUS-Fixed';
+            if (window.ksu) {
+                // KernelSU 环境下用 ksu.exec 打开浏览器
+                ksu.exec('am start -a android.intent.action.VIEW -d ' + url);
+            } else {
+                // 普通浏览器环境
+                window.open(url, '_blank');
+            }
+        }
+
+        // 动态加载模块信息
         async function loadModuleInfo() {
             try {
                 const res = await fetch('./module_info.json?t=' + Date.now());
@@ -785,14 +838,18 @@
                 if (info.version) document.getElementById('about-version').textContent = '版本 ' + info.version;
                 if (info.author) document.getElementById('about-author').textContent = info.author;
                 if (info.description) document.getElementById('about-notice').textContent = info.description;
-            } catch (e) {}
+            } catch (e) {
+                // 静默失败，使用默认值
+            }
         }
 
+        // 初始化主题
         (function initTheme() {
             const saved = localStorage.getItem('hma_theme') || 'auto';
             applyTheme(saved);
         })();
 
+        // ===== 核心业务 =====
         const colorPalette = [
             '#FF6B6B', '#FF8E53', '#FFBE53', '#4ECDC4', '#45B7D1',
             '#6A89CC', '#9B59B6', '#F78FB3', '#32FF7E', '#706fd3',
@@ -811,6 +868,7 @@
         let currentFilter = 'all';
         let stats = { pid: '--', blacklist: 0, whitelist: 0, cleaned: 0 };
 
+        // ===== 初始化 =====
         async function init() {
             loadModuleInfo();
             try {
@@ -839,6 +897,7 @@
                     stats = await sRes.json();
                 }
 
+                // apps = 黑名单中的应用（按包名字母排序）
                 apps = filteredPkgs
                     .filter(pkg => blacklistSet.has(pkg))
                     .sort((a, b) => a.localeCompare(b));
@@ -863,6 +922,7 @@
             }
         }
 
+        // ===== 渲染列表 =====
         function render(kw = '') {
             const listEl = document.getElementById('list');
             listEl.innerHTML = '';

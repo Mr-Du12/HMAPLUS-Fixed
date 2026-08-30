@@ -176,15 +176,18 @@ EOF
 # --- 3. 清理任务 ---
 clean_task() {
     refresh_lists || return
+    # 快速路径：黑名单为空则直接返回，避免不必要的循环
     [ -z "$CACHED_LIST" ] && return
+    [ "$BLACKLIST_COUNT" -eq 0 ] && return
 
     local cleaned_this_round=0
     for pkg in $CACHED_LIST; do
         local current_pkg=$(echo "$pkg" | tr -cd 'a-zA-Z0-9._-')
         [ -z "$current_pkg" ] && continue
-        if echo "$WHITE_LIST" | grep -Fqx "$current_pkg" 2>/dev/null; then
-            continue
-        fi
+        # 白名单快速匹配
+        case " $WHITE_LIST " in
+            *" $current_pkg "*) continue ;;
+        esac
         for sub in data obb media; do
             if [ -d "$M_BASE/$sub/$current_pkg" ]; then
                 rm -rf "$M_BASE/$sub/$current_pkg"
@@ -233,17 +236,23 @@ clean_task
 ) 2>/dev/null &
 
 # --- 6. 主循环 ---
+# 功耗优化：inotifyd 已监听目录变化并即时触发清理
+# 因此定时检查间隔可以大幅延长，减少CPU唤醒
 TICK=0
+CHECK_INTERVAL=30       # 主循环检查间隔（秒）
+FORCE_CLEAN_EVERY=600   # 强制全量清理间隔（秒），默认10分钟
 while :; do
     if [ -f "$FLAG_FILE" ]; then
         rm -f "$FLAG_FILE" 2>/dev/null
         clean_task
         TICK=0
     fi
-    TICK=$((TICK + 5))
-    if [ $TICK -ge 30 ]; then
-        clean_task
+    TICK=$((TICK + CHECK_INTERVAL))
+    if [ $TICK -ge $FORCE_CLEAN_EVERY ]; then
+        # 仅刷新统计，不做全量清理（inotify已覆盖实时变化）
+        refresh_lists
+        write_stats
         TICK=0
     fi
-    sleep 5
+    sleep $CHECK_INTERVAL
 done
