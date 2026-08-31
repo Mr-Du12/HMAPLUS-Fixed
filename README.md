@@ -19,7 +19,7 @@
 
 这个项目的初衷是解决以下问题：
 
-- HMA 只管“隐藏应用”，不管应用卸载/更新后残留在外部存储的空壳目录，这些目录既占空间，又可能被部分检测手段扫到；
+- HMA 只管“隐藏应用”，风险应用路径又可能被部分检测手段扫到；
 - 旧版清理方式要手动跑脚本、翻日志，有没有清掉、清了多少全靠猜，对新手极不友好；
 - 手动删除残留容易误删重要应用数据，缺少一个能和 HMA 黑名单联动、又带白名单保护的自动化清理工具；
 - 后台轮询清理要么不实时、要么费电，缺少“目录一变就清理”的轻量方案。
@@ -37,7 +37,6 @@
 - [x] 内置图形化 WebUI 控制面板，首页实时显示进程 PID、黑名单数、白名单数、累计清理项数
 - [x] 包名模糊搜索，全部 / 黑名单 / 白名单一键筛选
 - [x] WebUI 内管理白名单，勾选后「保存并应用配置」即时生效，无需重启手机
-- [x] 深色 / 浅色双主题切换、手动刷新、关于页（自动读取模块名称、版本、作者信息）
 - [x] 开机自动检测 HMA 配置，刷入时安装器直接打印黑名单数量与待清理包名示例
 - [x] 黑名单应用 `Android/data`、`obb`、`media` 残留目录自动清理
 - [x] 支持 action.sh 手动一键执行清理，每次清理写入系统日志（`log -t HMAPLUS`）
@@ -74,14 +73,6 @@
 - 本模块只清理黑名单应用在**外部存储**（`Android/data`、`obb`、`media`）下的残留目录，不会卸载应用，也不碰 `/data/data` 应用私有数据；
 - 清理动作不可恢复，重要应用请务必在 WebUI 白名单中勾选保护；
 - 本模块与 Hide My Applist 官方无直接关系，属于第三方增强清理辅助模块，使用中遇到问题请在本仓库 Issues 反馈。
-
-## 鸣谢
-
-- Hide My Applist：[Dr-TSNG/Hide-My-Applist](https://github.com/Dr-TSNG/Hide-My-Applist)
-- Magisk：[topjohnwu/Magisk](https://github.com/topjohnwu/Magisk)
-- KernelSU：[tiann/KernelSU](https://github.com/tiann/KernelSU)
-- APatch：[bmax121/APatch](https://github.com/bmax121/APatch)
-- 独立 WebUI 运行环境 KsuWebUI：[5ec1cff/KsuWebUI](https://github.com/5ec1cff/KsuWebUI)
 
 <!-- 访客统计 -->
 <div align="center">
