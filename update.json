@@ -1,6 +1,6 @@
 {
-  "version": "V1.15",
-  "versionCode": 115,
-  "zipUrl": "https://github.com/Mr-Du12/HMAPLUS-Fixed/releases/download/V1.15/HMAPLUS-Fixed-V1.15-Module.zip",
-  "changelog": "V1.15 更新：\n- WebUI关于页面添加GitHub图标按钮\n- 主循环检查间隔延长至30秒，降低功耗\n- 强制全量清理间隔延长至10分钟（inotify已覆盖实时变化）\n- 白名单匹配优化为shell内置case，提升效率\n- 增加空黑名单快速返回路径"
+  "version": "V1.20",
+  "versionCode": 120,
+  "zipUrl": "https://github.com/Mr-Du12/HMAPLUS-Fixed/releases/download/V1.20/HMAPLUS-Fixed-V1.20-Module.zip",
+  "changelog": "V1.20 更新：\n- 右上角改为更多功能菜单（主题切换/运行日志/关于）\n- 新增运行日志功能，记录清理详情与错误\n- 日志低功耗设计，仅在事件发生时写入\n- 日志自动截断，最多保留200条"
 }
