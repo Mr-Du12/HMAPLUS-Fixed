@@ -1,7 +1,7 @@
 id=HMAPLUS
 name=HMAPLUS-Fixed
-version=V1.15
-versionCode=115
+version=V1.20
+versionCode=120
 author=哒达鸭
 description=开机自动检查HMA配置下的APP目录，检测黑名单路径到自动清理 | WebUI重构
 updateJson=https://cdn.jsdelivr.net/gh/Mr-Du12/HMAPLUS-Fixed@main/update.json
