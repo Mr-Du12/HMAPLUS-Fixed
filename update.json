@@ -2,5 +2,5 @@
   "version": "V1.20",
   "versionCode": 120,
   "zipUrl": "https://github.com/Mr-Du12/HMAPLUS-Fixed/releases/download/V1.20/HMAPLUS-Fixed-V1.20-Module.zip",
-  "changelog": "## 更新总览\n\n### 1. 右上角改为「更多功能」菜单\n- 原来的主题按钮 + 信息按钮 → 合并为一个**三点图标**\n- 点击后从底部弹出菜单，顺序为：\n  - 🌞 **主题切换**（浅色/深色/跟随系统）\n  - 📋 **运行日志**（新增）\n  - ℹ️ **关于**\n\n### 2. 新增运行日志功能\n| 类型 | 颜色 | 内容 |\n|------|------|------|\n| 清理记录 | 🔵 蓝色 | 清理的包名 + 目录（data/obb/media）+ 时间戳 |\n| 运行错误 | 🔴 红色 | 清理失败等异常信息 |\n\n- 支持**一键清空**日志\n- 日志**自动截断**，最多保留 200 条\n- 最新记录在最上方\n\n### 3. 低功耗保证\n- ✅ 仅在**事件发生时**写入（清理操作 / 错误），无周期性写入\n- ✅ 使用 shell 内置 `>>` 追加，单次写入开销极低\n- ✅ 无后台日志线程，不占用 CPU\n- ✅ 文件大小自动限制，不会无限增长"
+  "changelog": "https://cdn.jsdelivr.net/gh/Mr-Du12/HMAPLUS-Fixed@main/changelog.md"
 }
