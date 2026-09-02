@@ -21,6 +21,9 @@
             --shadow: rgba(91,106,191,0.08);
             --shadow-lg: rgba(91,106,191,0.12);
             --overlay: rgba(0,0,0,0.5);
+            --log-info: #5b6abf;
+            --log-error: #e74c5e;
+            --log-time: #8e8ea0;
         }
 
         body.dark-mode {
@@ -39,6 +42,9 @@
             --shadow: rgba(0,0,0,0.3);
             --shadow-lg: rgba(0,0,0,0.4);
             --overlay: rgba(0,0,0,0.7);
+            --log-info: #7b8ad4;
+            --log-error: #f06070;
+            --log-time: #6a6a80;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -332,11 +338,84 @@
             box-shadow: 0 2px 8px rgba(91,106,191,0.2);
         }
 
+        /* ===== 更多菜单（底部弹出） ===== */
+        .menu-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            z-index: 500;
+            background: var(--overlay);
+            display: none;
+            align-items: flex-end;
+            justify-content: center;
+        }
+        .menu-overlay.show { display: flex; }
+
+        .menu-sheet {
+            background: var(--card);
+            border-radius: 20px 20px 0 0;
+            width: 100%;
+            max-width: 500px;
+            padding: 8px;
+            padding-bottom: max(8px, env(safe-area-inset-bottom));
+            animation: slideUp 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+
+        .menu-item {
+            padding: 16px 20px;
+            font-size: 16px;
+            color: var(--text);
+            border-radius: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            transition: background 0.15s;
+        }
+        .menu-item:active { background: var(--input); }
+
+        .menu-item .menu-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            color: #fff;
+        }
+
+        .menu-item.theme .menu-icon { background: linear-gradient(135deg, #f5a623, #ff8e53); }
+        .menu-item.log .menu-icon { background: linear-gradient(135deg, #5b6abf, #7b8ad4); }
+        .menu-item.about .menu-icon { background: linear-gradient(135deg, #34c77b, #40d88a); }
+
+        .menu-divider {
+            height: 1px;
+            background: var(--border);
+            margin: 4px 12px;
+        }
+
+        .menu-cancel {
+            padding: 16px;
+            text-align: center;
+            font-size: 16px;
+            color: var(--sub);
+            font-weight: 600;
+            border-radius: 12px;
+            cursor: pointer;
+            margin-top: 4px;
+        }
+        .menu-cancel:active { background: var(--input); }
+
         /* ===== 主题切换弹窗 ===== */
         .theme-overlay {
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
-            z-index: 300;
+            z-index: 600;
             background: var(--overlay);
             display: none;
             align-items: center;
@@ -394,11 +473,133 @@
         }
         .theme-close:active { background: var(--input); }
 
+        /* ===== 日志页面 ===== */
+        .log-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            z-index: 600;
+            background: var(--bg);
+            display: none;
+            flex-direction: column;
+            animation: slideInRight 0.3s ease;
+        }
+        .log-overlay.show { display: flex; }
+
+        @keyframes slideInRight {
+            from { transform: translateX(100%); }
+            to { transform: translateX(0); }
+        }
+
+        .log-header {
+            display: flex;
+            align-items: center;
+            padding: 50px 16px 12px;
+            background: var(--card);
+            border-bottom: 1px solid var(--border);
+            box-shadow: 0 2px 8px var(--shadow);
+        }
+
+        .log-back {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--text);
+            margin-right: 8px;
+        }
+        .log-back:active { background: var(--input); }
+
+        .log-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text);
+            flex: 1;
+        }
+
+        .log-clear {
+            padding: 8px 14px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--red);
+            background: var(--red-bg);
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        .log-clear:active { opacity: 0.7; }
+
+        .log-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px 16px;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .log-item {
+            padding: 10px 14px;
+            margin-bottom: 8px;
+            background: var(--card);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            font-size: 13px;
+            line-height: 1.5;
+            word-break: break-all;
+        }
+
+        .log-item .log-time {
+            font-size: 11px;
+            color: var(--log-time);
+            margin-bottom: 4px;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+        }
+
+        .log-item .log-msg {
+            color: var(--text);
+        }
+
+        .log-item.info .log-msg { color: var(--log-info); }
+        .log-item.error .log-msg { color: var(--log-error); }
+
+        .log-item .log-type {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 10px;
+            font-weight: 700;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+
+        .log-item.info .log-type {
+            background: var(--log-info);
+            color: #fff;
+        }
+
+        .log-item.error .log-type {
+            background: var(--log-error);
+            color: #fff;
+        }
+
+        .log-empty {
+            text-align: center;
+            padding: 80px 20px;
+            color: var(--sub);
+        }
+        .log-empty .empty-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+        .log-empty .empty-text {
+            font-size: 15px;
+        }
+
         /* ===== 关于页面 ===== */
         .about-overlay {
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
-            z-index: 400;
+            z-index: 600;
             background: var(--overlay);
             display: none;
             align-items: center;
@@ -600,7 +801,7 @@
             padding: 14px 28px;
             border-radius: 12px;
             font-size: 14px;
-            z-index: 999;
+            z-index: 9999;
             opacity: 0;
             transition: all 0.3s;
             pointer-events: none;
@@ -625,17 +826,11 @@
                     <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
                 </svg>
             </div>
-            <div class="icon-btn" onclick="showThemePicker()" title="切换主题">
-                <svg id="theme-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="4"></circle>
-                    <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path>
-                </svg>
-            </div>
-            <div class="icon-btn" onclick="showAbout()" title="关于">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <line x1="12" y1="16" x2="12" y2="12"></line>
-                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+            <div class="icon-btn" onclick="showMenu()" title="更多功能">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <circle cx="12" cy="5" r="2"></circle>
+                    <circle cx="12" cy="12" r="2"></circle>
+                    <circle cx="12" cy="19" r="2"></circle>
                 </svg>
             </div>
         </div>
@@ -700,6 +895,45 @@
         <button class="save-btn" id="save-btn">保存并应用配置</button>
     </div>
 
+    <!-- 更多菜单 -->
+    <div class="menu-overlay" id="menu-overlay" onclick="closeMenu()">
+        <div class="menu-sheet" onclick="event.stopPropagation()">
+            <div class="menu-item theme" onclick="onMenuTheme()">
+                <div class="menu-icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="4"></circle>
+                        <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path>
+                    </svg>
+                </div>
+                <span>主题切换</span>
+            </div>
+            <div class="menu-divider"></div>
+            <div class="menu-item log" onclick="onMenuLog()">
+                <div class="menu-icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <line x1="8" y1="13" x2="16" y2="13"></line>
+                        <line x1="8" y1="17" x2="16" y2="17"></line>
+                    </svg>
+                </div>
+                <span>运行日志</span>
+            </div>
+            <div class="menu-divider"></div>
+            <div class="menu-item about" onclick="onMenuAbout()">
+                <div class="menu-icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="16" x2="12" y2="12"></line>
+                        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                    </svg>
+                </div>
+                <span>关于</span>
+            </div>
+            <div class="menu-cancel" onclick="closeMenu()">取消</div>
+        </div>
+    </div>
+
     <!-- 主题切换弹窗 -->
     <div class="theme-overlay" id="theme-overlay" onclick="closeThemePicker()">
         <div class="theme-box" onclick="event.stopPropagation()">
@@ -717,6 +951,25 @@
                 <span class="check">✓</span>
             </div>
             <div class="theme-close" onclick="closeThemePicker()">关闭</div>
+        </div>
+    </div>
+
+    <!-- 日志页面 -->
+    <div class="log-overlay" id="log-overlay">
+        <div class="log-header">
+            <div class="log-back" onclick="closeLog()">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="15 18 9 12 15 6"></polyline>
+                </svg>
+            </div>
+            <div class="log-title">运行日志</div>
+            <div class="log-clear" onclick="clearLog()">清空</div>
+        </div>
+        <div class="log-content" id="log-content">
+            <div class="log-empty">
+                <div class="empty-icon">📋</div>
+                <div class="empty-text">暂无日志</div>
+            </div>
         </div>
     </div>
 
@@ -769,6 +1022,39 @@
             setTimeout(() => t.classList.remove('show'), 2500);
         }
 
+        function escHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        // ===== 更多菜单 =====
+        function showMenu() {
+            document.getElementById('menu-overlay').classList.add('show');
+        }
+
+        function closeMenu() {
+            document.getElementById('menu-overlay').classList.remove('show');
+        }
+
+        function onMenuTheme() {
+            closeMenu();
+            setTimeout(() => showThemePicker(), 200);
+        }
+
+        function onMenuLog() {
+            closeMenu();
+            setTimeout(() => {
+                loadLog();
+                document.getElementById('log-overlay').classList.add('show');
+            }, 200);
+        }
+
+        function onMenuAbout() {
+            closeMenu();
+            setTimeout(() => showAbout(), 200);
+        }
+
         // ===== 主题控制 =====
         function applyTheme(mode) {
             const b = document.body;
@@ -777,7 +1063,6 @@
             if (mode === 'auto' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
                 b.classList.add('dark-mode');
             }
-            // 更新选中状态
             ['light', 'dark', 'auto'].forEach(m => {
                 document.getElementById('theme-' + m).classList.toggle('active', mode === m);
             });
@@ -797,6 +1082,81 @@
             document.getElementById('theme-overlay').classList.remove('show');
         }
 
+        // ===== 日志功能 =====
+        function closeLog() {
+            document.getElementById('log-overlay').classList.remove('show');
+        }
+
+        async function loadLog() {
+            const contentEl = document.getElementById('log-content');
+            contentEl.innerHTML = '<div class="loading-state"><div class="spinner"></div><div>加载中...</div></div>';
+
+            try {
+                const res = await fetch('./hmaplusa_log.txt?t=' + Date.now());
+                const text = await res.text();
+
+                if (!text || text.trim() === '') {
+                    contentEl.innerHTML = `
+                        <div class="log-empty">
+                            <div class="empty-icon">📋</div>
+                            <div class="empty-text">暂无日志</div>
+                        </div>`;
+                    return;
+                }
+
+                const lines = text.trim().split('\n').reverse();
+                let html = '';
+                lines.forEach(line => {
+                    // 格式: [时间] [类型] 消息
+                    const match = line.match(/^\[(.+?)\]\s+\[(INFO|ERROR)\]\s+(.+)$/);
+                    if (match) {
+                        const time = match[1];
+                        const type = match[2].toLowerCase();
+                        const msg = match[3];
+                        const typeLabel = type === 'info' ? '清理' : '错误';
+                        html += `
+                            <div class="log-item ${type}">
+                                <div class="log-time">${escHtml(time)}</div>
+                                <div class="log-msg">
+                                    <span class="log-type">${typeLabel}</span>
+                                    ${escHtml(msg)}
+                                </div>
+                            </div>`;
+                    } else {
+                        // 旧格式或无法解析的行
+                        html += `
+                            <div class="log-item info">
+                                <div class="log-msg">${escHtml(line)}</div>
+                            </div>`;
+                    }
+                });
+
+                contentEl.innerHTML = html;
+            } catch (e) {
+                contentEl.innerHTML = `
+                    <div class="log-empty">
+                        <div class="empty-icon">📋</div>
+                        <div class="empty-text">暂无日志</div>
+                    </div>`;
+            }
+        }
+
+        async function clearLog() {
+            if (!confirm('确定要清空所有日志吗？')) return;
+
+            if (window.ksu) {
+                try {
+                    await ksu.exec('echo -n "" > /data/adb/modules/HMAPLUS/webroot/hmaplusa_log.txt && chmod 666 /data/adb/modules/HMAPLUS/webroot/hmaplusa_log.txt');
+                    showToast("日志已清空");
+                    loadLog();
+                } catch (err) {
+                    showToast("清空失败: " + err);
+                }
+            } else {
+                showToast("请在 KernelSU 环境下使用");
+            }
+        }
+
         // ===== 关于页面 =====
         function showAbout() {
             document.getElementById('about-overlay').classList.add('show');
@@ -809,10 +1169,8 @@
         // 酷安主页跳转
         function openCoolapk() {
             if (window.ksu) {
-                // KernelSU 环境下用 ksu.exec 打开浏览器
                 ksu.exec('am start -a android.intent.action.VIEW -d https://www.coolapk.com/u/3888187');
             } else {
-                // 普通浏览器环境
                 window.open('https://www.coolapk.com/u/3888187', '_blank');
             }
         }
@@ -821,10 +1179,8 @@
         function openGithub() {
             const url = 'https://github.com/Mr-Du12/HMAPLUS-Fixed';
             if (window.ksu) {
-                // KernelSU 环境下用 ksu.exec 打开浏览器
                 ksu.exec('am start -a android.intent.action.VIEW -d ' + url);
             } else {
-                // 普通浏览器环境
                 window.open(url, '_blank');
             }
         }
@@ -970,12 +1326,6 @@
 
                 listEl.appendChild(card);
             });
-        }
-
-        function escHtml(str) {
-            const div = document.createElement('div');
-            div.textContent = str;
-            return div.innerHTML;
         }
 
         function switchTab(filter, el) {
