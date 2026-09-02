@@ -36,6 +36,8 @@ STATS_FILE="$WEB_DIR/stats.json"
 CLEANED_FILE="$MOD_DIR/.cleaned_count"
 BLACKLIST_FILE="$WEB_DIR/blacklist.json"
 MODULE_INFO_FILE="$WEB_DIR/module_info.json"
+LOG_FILE="$WEB_DIR/hmaplusa_log.txt"
+LOG_MAX_LINES=200
 
 # 缓存变量
 LAST_CONF_TIME=0
@@ -45,6 +47,33 @@ CACHED_LIST=""
 BLACKLIST_COUNT=0
 WHITELIST_COUNT=0
 CLEANED_COUNT=0
+
+# --- 低功耗日志函数 ---
+# 仅在事件发生时写入，无定时写入，不增加功耗
+# 格式: [时间] [类型] 消息
+log_info() {
+    local ts=$(date '+%Y-%m-%d %H:%M:%S')
+    echo "[$ts] [INFO] $1" >> "$LOG_FILE"
+    # 自动截断：超过最大行数时保留最后 N 行
+    # 仅在写入时检查一次，使用 wc + tail 一次性处理
+    local lines=$(wc -l < "$LOG_FILE" 2>/dev/null | tr -d ' ')
+    if [ -n "$lines" ] && [ "$lines" -gt "$LOG_MAX_LINES" ]; then
+        tail -n "$LOG_MAX_LINES" "$LOG_FILE" > "${LOG_FILE}.tmp"
+        mv "${LOG_FILE}.tmp" "$LOG_FILE"
+    fi
+    chmod 666 "$LOG_FILE" 2>/dev/null
+}
+
+log_error() {
+    local ts=$(date '+%Y-%m-%d %H:%M:%S')
+    echo "[$ts] [ERROR] $1" >> "$LOG_FILE"
+    local lines=$(wc -l < "$LOG_FILE" 2>/dev/null | tr -d ' ')
+    if [ -n "$lines" ] && [ "$lines" -gt "$LOG_MAX_LINES" ]; then
+        tail -n "$LOG_MAX_LINES" "$LOG_FILE" > "${LOG_FILE}.tmp"
+        mv "${LOG_FILE}.tmp" "$LOG_FILE"
+    fi
+    chmod 666 "$LOG_FILE" 2>/dev/null
+}
 
 # --- 0. 写入PID ---
 write_pid() {
@@ -77,6 +106,10 @@ EOF
 # --- 1. 数据初始化 ---
 init_web_data() {
     mkdir -p "$WEB_DIR"
+
+    # 初始化日志文件
+    [ ! -f "$LOG_FILE" ] && touch "$LOG_FILE"
+    chmod 666 "$LOG_FILE"
 
     # 白名单默认包含 bin.mt.plus
     if [ ! -f "$LOCAL_WHITE" ] || [ ! -s "$LOCAL_WHITE" ]; then
@@ -190,9 +223,13 @@ clean_task() {
         esac
         for sub in data obb media; do
             if [ -d "$M_BASE/$sub/$current_pkg" ]; then
-                rm -rf "$M_BASE/$sub/$current_pkg"
-                log -t HMAPLUS "已清理 $current_pkg" 2>/dev/null
-                cleaned_this_round=$((cleaned_this_round + 1))
+                rm -rf "$M_BASE/$sub/$current_pkg" 2>/dev/null
+                if [ $? -eq 0 ]; then
+                    log_info "已清理 $current_pkg ($sub)"
+                    cleaned_this_round=$((cleaned_this_round + 1))
+                else
+                    log_error "清理失败 $current_pkg ($sub)"
+                fi
             fi
         done
     done
@@ -211,6 +248,7 @@ if [ "$1" = "trigger" ]; then
     write_pid
     export_module_info
     refresh_lists
+    log_info "手动触发清理"
     clean_task
     write_stats
     exit 0
@@ -224,6 +262,7 @@ until [ -d "/sdcard/Android" ]; do sleep 5; done
 write_pid
 init_web_data
 export_module_info
+log_info "模块服务启动"
 refresh_lists
 write_stats
 clean_task
