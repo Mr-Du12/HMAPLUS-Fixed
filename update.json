@@ -2,5 +2,5 @@
   "version": "V1.20",
   "versionCode": 120,
   "zipUrl": "https://github.com/Mr-Du12/HMAPLUS-Fixed/releases/download/V1.20/HMAPLUS-Fixed-V1.20-Module.zip",
-  "changelog": "V1.20 更新：\n- 右上角改为更多功能菜单（主题切换/运行日志/关于）\n- 新增运行日志功能，记录清理详情与错误\n- 日志低功耗设计，仅在事件发生时写入\n- 日志自动截断，最多保留200条"
+  "changelog": "## V1.20 更新内容\n\n### WebUI 重构\n- 右上角改为「更多功能」菜单（底部弹出式）\n- 菜单项：主题切换 → 运行日志 → 关于\n\n### 新增运行日志\n- 🔵 清理日志（蓝色）：记录每次清理的包名和目录\n- 🔴 错误日志（红色）：记录运行时出现的错误\n- 支持一键清空，自动截断最多200条\n\n### 低功耗保证\n- 仅事件触发写入，无周期性操作\n- 不增加CPU唤醒，不影响续航\n\n### 其他优化\n- updateJson 改用 jsDelivr CDN，国内网络正常检测更新"
 }
