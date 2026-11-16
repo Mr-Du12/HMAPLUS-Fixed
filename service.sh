@@ -259,6 +259,9 @@ kill_old_instances
 
 until [ -d "/sdcard/Android" ]; do sleep 5; done
 
+# 开机后等待 90 秒再启动，错开开机高峰
+sleep 90
+
 write_pid
 init_web_data
 export_module_info

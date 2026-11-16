@@ -40,6 +40,7 @@ elif [ "${API:-0}" -lt 33 ]; then
 else
     ui_print "- UID 过滤组件已就绪"
 fi
+ui_print "- UID 过滤默认关闭，可在 WebUI 中开启"
 
 # 权限
 set_perm_recursive "$MODPATH" 0 0 0755 0644
