@@ -315,7 +315,7 @@
             transform: rotate(45deg);
         }
 
-        /* ===== UID 过滤视图 ===== */
+        /* ===== UID 内核隐藏视图 ===== */
         .uid-view { padding: 0 20px; }
 
         .uid-card {
@@ -1059,7 +1059,7 @@
     <div class="header">
         <div class="header-left">
             <h1>HMA+ 配置中心</h1>
-            <div class="subtitle">智能清理 · UID 过滤</div>
+            <div class="subtitle">智能清理 · UID 隐藏</div>
         </div>
         <div class="header-right">
             <div class="icon-btn" onclick="onRefresh(event)" title="刷新">
@@ -1081,7 +1081,7 @@
     <!-- 视图切换 -->
     <div class="segment">
         <button class="seg-btn active" id="seg-clean" onclick="switchView('clean')">目录清理</button>
-        <button class="seg-btn" id="seg-uid" onclick="switchView('uid')">UID 过滤</button>
+        <button class="seg-btn" id="seg-uid" onclick="switchView('uid')">UID 隐藏</button>
     </div>
 
     <!-- ===== 视图一：目录清理 ===== -->
@@ -1125,11 +1125,11 @@
         </div>
     </div>
 
-    <!-- ===== 视图二：UID 过滤 ===== -->
+    <!-- ===== 视图二：UID 隐藏 ===== -->
     <div id="uid-view" class="uid-view" style="display:none">
         <div class="uid-card">
             <div>
-                <div class="uid-card-title">启用 UID 过滤</div>
+                <div class="uid-card-title">启用 UID 隐藏</div>
                 <div class="uid-card-sub" id="uid-status">正在读取模块状态…</div>
             </div>
             <label class="switch">
@@ -1138,21 +1138,12 @@
             </label>
         </div>
 
+        <div class="uid-hint">通过内核模块 hook <code>getpriority</code>，隐藏进程优先级信息。开启后立即加载，关闭后卸载，不影响目录清理。</div>
+
         <div class="uid-section">
-            <div class="uid-section-title">生效应用<span class="uid-count" id="uid-count">0</span></div>
-            <button class="uid-link-btn" id="uid-defaults" disabled>加入内置包名</button>
+            <div class="uid-section-title">运行信息</div>
         </div>
-
-        <div class="uid-hint">仅对下列包名生效，通过过滤 <code>getpriority(PRIO_USER)</code> 规避检测。保存后只重启配置有变化的应用，不清除应用数据。</div>
-
-        <div class="uid-input-row">
-            <input type="text" class="uid-input" id="uid-package" placeholder="例如 com.example.app" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="255" disabled>
-            <button class="uid-add-btn" id="uid-add" disabled>添加</button>
-        </div>
-        <div class="uid-error" id="uid-error"></div>
-
         <ul class="uid-list" id="uid-list"></ul>
-        <div class="uid-empty" id="uid-empty" style="display:none">还没有生效应用，输入包名或加入内置包名</div>
     </div>
 
     <!-- 底部操作栏 -->
@@ -1256,13 +1247,13 @@
             <div class="about-header">
                 <div class="about-icon">H+</div>
                 <div class="about-title" id="about-title">HMA-Fixed</div>
-                <div class="about-subtitle">智能清理 · UID 过滤</div>
+                <div class="about-subtitle">智能清理 · UID 隐藏</div>
                 <div class="about-version" id="about-version">版本 --</div>
                 <div class="about-author">作者：<span class="author-name" id="about-author">哒达鸭</span></div>
             </div>
 
             <div class="about-notice" id="about-notice">
-                本模块基于 Hide My Applist 增强版，开机自动检查 HMA 配置下的应用目录，检测黑名单路径并自动清理，并合入 UID 过滤功能。本 WebUI 与 HMA 模块本身无关，如有问题请不要向 HMA 原作者反馈。
+                本模块基于 Hide My Applist 增强版，开机检查 HMA 配置下的应用目录，自动清理黑名单残留，并在开启后通过内核模块全局隐藏 getpriority 查询结果。本 WebUI 与 HMA 模块本身无关，如有问题请不要向 HMA 原作者反馈。
             </div>
 
             <div class="about-links">
@@ -1279,7 +1270,7 @@
             <div class="about-credits">
                 <div class="credits-title">特别鸣谢</div>
                 <div class="credits-content">
-                    原模块来自酷安<span class="credit-name">@小石不会搞机</span>，UID 过滤组件来自<span class="credit-name">@泷泽</span>，作者对此模块修复 bug / 重置 Web UI。后续有任何问题留言反馈。
+                    原模块来自酷安<span class="credit-name">@小石不会搞机</span>，UID 内核隐藏取自模块<span class="credit-name">#fgetpriority</span>，作者对此模块修复bug / 重置 Web UI。
                 </div>
             </div>
 
@@ -1357,11 +1348,12 @@
                 totalEl.innerHTML = '<span>共</span><span class="bs-value" id="stat-total">' + apps.length + '</span><span>个应用</span>';
                 btn.textContent = '保存并应用配置';
             } else {
-                label.textContent = '生效应用';
-                unit.textContent = '个';
-                value.textContent = uidPackages.length;
-                totalEl.innerHTML = '<span>状态</span><span class="bs-value" id="stat-total" style="color:var(--green)">' + (document.getElementById('uid-enabled').checked ? '已开启' : '已关闭') + '</span>';
-                btn.textContent = '保存 UID 过滤';
+                const on = document.getElementById('uid-enabled').checked;
+                label.textContent = 'UID 隐藏';
+                unit.textContent = '';
+                value.textContent = on ? '开' : '关';
+                totalEl.innerHTML = '<span>内核模块</span><span class="bs-value" id="stat-total" style="color:var(--green)">' + (uidState && uidState.loaded ? '已加载' : '未加载') + '</span>';
+                btn.textContent = '保存 UID 隐藏';
             }
         }
 
@@ -1693,25 +1685,15 @@
 
         document.getElementById('search').oninput = e => render(e.target.value);
 
-        // ===== UID 过滤 =====
-        const UID_SCRIPT = '/data/adb/modules/HMAPLUS/control.sh';
-        const UID_BUILTINS = ['com.chunqiunativecheck', 'com.chunqiu.appvisibilitydemo'];
+        // ===== UID 隐藏（内核模块） =====
+        const UID_SCRIPT = '/data/adb/modules/HMAPLUS/uid.sh';
 
         let uidLoaded = false;
-        let uidSaved = null;
-        let uidPackages = [];
+        let uidState = null;
         let uidBusy = false;
 
-        function uidValidPackage(value) {
-            return value.length <= 255 && /^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)+$/.test(value);
-        }
-
-        function uidSignature(enabled, list) {
-            return JSON.stringify([enabled, [...list].sort()]);
-        }
-
         function uidDirty() {
-            return uidSaved && uidSignature(document.getElementById('uid-enabled').checked, uidPackages) !== uidSignature(uidSaved.enabled, uidSaved.packages);
+            return !!uidState && document.getElementById('uid-enabled').checked !== uidState.enabled;
         }
 
         async function uidCommand(args) {
@@ -1719,69 +1701,54 @@
             return JSON.parse(out);
         }
 
+        function uidInfoRow(label, value, color) {
+            const li = document.createElement('li');
+            li.className = 'uid-item';
+
+            const nameEl = document.createElement('div');
+            nameEl.className = 'uid-name';
+            nameEl.textContent = label;
+            li.appendChild(nameEl);
+
+            const badge = document.createElement('span');
+            badge.className = 'uid-badge';
+            if (color) badge.style.color = color;
+            badge.textContent = value;
+            li.appendChild(badge);
+            return li;
+        }
+
         function renderUid() {
-            document.getElementById('uid-count').textContent = uidPackages.length;
+            const enabledEl = document.getElementById('uid-enabled');
+            enabledEl.disabled = !(uidState && !uidBusy && uidState.supported);
+
             const listEl = document.getElementById('uid-list');
             listEl.replaceChildren();
-
-            uidPackages.forEach(name => {
-                const li = document.createElement('li');
-                li.className = 'uid-item';
-
-                const nameEl = document.createElement('div');
-                nameEl.className = 'uid-name';
-                nameEl.textContent = name;
-                li.appendChild(nameEl);
-
-                if (UID_BUILTINS.includes(name)) {
-                    const badge = document.createElement('span');
-                    badge.className = 'uid-badge';
-                    badge.textContent = '内置';
-                    li.appendChild(badge);
-                }
-
-                const remove = document.createElement('button');
-                remove.className = 'uid-remove';
-                remove.type = 'button';
-                remove.disabled = uidBusy;
-                remove.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 6l12 12M6 18L18 6"/></svg>';
-                remove.onclick = () => {
-                    if (uidBusy) return;
-                    uidPackages = uidPackages.filter(p => p !== name);
-                    renderUid();
-                    updateBottomBar();
-                };
-                li.appendChild(remove);
-
-                listEl.appendChild(li);
-            });
-
-            document.getElementById('uid-empty').style.display = uidPackages.length === 0 ? 'block' : 'none';
-
-            const ready = uidSaved !== null && !uidBusy;
-            document.getElementById('uid-enabled').disabled = !ready;
-            document.getElementById('uid-package').disabled = !ready;
-            document.getElementById('uid-add').disabled = !ready;
-            document.getElementById('uid-defaults').disabled = !ready;
+            if (uidState) {
+                listEl.appendChild(uidInfoRow('内核模块', uidState.loaded ? '已加载' : '未加载', uidState.loaded ? 'var(--green)' : ''));
+                listEl.appendChild(uidInfoRow('内核 KMI', uidState.module || '未知'));
+                listEl.appendChild(uidInfoRow('模块支持', uidState.supported ? '可用' : '当前内核不可用', uidState.supported ? 'var(--green)' : 'var(--red)'));
+            }
 
             const statusEl = document.getElementById('uid-status');
-            if (!uidSaved) {
+            if (!uidState) {
                 statusEl.textContent = '连接模块失败';
-            } else if (document.getElementById('uid-enabled').checked) {
-                statusEl.textContent = '已对 ' + uidPackages.length + ' 个应用生效' + (uidDirty() ? '（待保存）' : '');
+            } else if (!uidState.supported) {
+                statusEl.textContent = '当前内核没有匹配的模块，UID 隐藏不可用';
+            } else if (enabledEl.checked) {
+                statusEl.textContent = uidDirty() ? '保存后开启' : (uidState.loaded ? '已开启' : '已开启，等待加载');
             } else {
-                statusEl.textContent = uidDirty() ? '保存后关闭过滤' : '已关闭过滤';
+                statusEl.textContent = uidDirty() ? '保存后关闭' : '已关闭';
             }
 
             if (currentView === 'uid') updateBottomBar();
         }
 
         function acceptUid(state) {
-            if (!Array.isArray(state.packages) || !state.packages.every(uidValidPackage) || typeof state.enabled !== 'boolean') {
-                throw new Error('模块返回的配置无效');
+            if (typeof state.enabled !== 'boolean' || typeof state.loaded !== 'boolean' || typeof state.supported !== 'boolean') {
+                throw new Error('模块返回的状态无效');
             }
-            uidSaved = state;
-            uidPackages = [...new Set(state.packages)];
+            uidState = state;
             document.getElementById('uid-enabled').checked = state.enabled;
             if (state.version) document.getElementById('about-version').textContent = '版本 ' + state.version;
             renderUid();
@@ -1802,9 +1769,8 @@
             try {
                 acceptUid(await uidCommand('status'));
                 uidLoaded = true;
-                document.getElementById('uid-error').textContent = '';
             } catch (err) {
-                uidSaved = null;
+                uidState = null;
                 document.getElementById('uid-status').textContent = '连接模块失败：' + err.message;
             } finally {
                 uidBusy = false;
@@ -1812,58 +1778,27 @@
             }
         }
 
-        document.getElementById('uid-add').onclick = () => {
-            if (uidBusy || !uidSaved) return;
-            const input = document.getElementById('uid-package');
-            const name = input.value.trim();
-            const errEl = document.getElementById('uid-error');
-            let error = '';
-            if (!uidValidPackage(name)) error = '包名格式无效';
-            else if (uidPackages.includes(name)) error = '该包名已在列表中';
-            else if (uidPackages.length >= 128) error = '最多只能添加 128 项';
-            errEl.textContent = error;
-            if (error) return;
-            uidPackages.push(name);
-            input.value = '';
-            renderUid();
-            updateBottomBar();
-        };
-
-        document.getElementById('uid-package').addEventListener('keydown', e => {
-            if (e.key === 'Enter') { e.preventDefault(); document.getElementById('uid-add').click(); }
-        });
-
-        document.getElementById('uid-defaults').onclick = () => {
-            if (uidBusy || !uidSaved) return;
-            uidPackages = [...new Set([...uidPackages, ...UID_BUILTINS])];
-            renderUid();
-            updateBottomBar();
-        };
-
         document.getElementById('uid-enabled').addEventListener('change', () => {
             renderUid();
-            updateBottomBar();
         });
 
         async function saveUid() {
-            if (uidBusy || !uidSaved) { showToast('模块状态未就绪'); return; }
+            if (uidBusy || !uidState) { showToast('模块状态未就绪'); return; }
+            if (!uidState.supported) { showToast('当前内核不支持 UID 隐藏'); return; }
             const enabled = document.getElementById('uid-enabled').checked;
-            if (enabled && uidPackages.length === 0) { showToast('启用时需要至少一个包名'); return; }
-
-            const payload = 'enabled=' + (enabled ? 1 : 0) + '\n' + uidPackages.join('\n') + (uidPackages.length ? '\n' : '');
-            const encoded = btoa(payload);
 
             uidBusy = true;
             document.getElementById('save-btn').textContent = '保存中...';
             try {
-                acceptUid(await uidCommand('save ' + encoded + ' apply'));
-                showToast('UID 过滤配置已应用');
-                renderUid();
+                acceptUid(await uidCommand('save ' + (enabled ? 1 : 0)));
+                showToast(enabled ? 'UID 隐藏已开启' : 'UID 隐藏已关闭');
             } catch (err) {
                 showToast('保存失败: ' + err.message);
+                try { acceptUid(await uidCommand('status')); } catch (e) {}
             } finally {
                 uidBusy = false;
                 renderUid();
+                updateBottomBar();
             }
         }
 

@@ -257,10 +257,13 @@ fi
 # --- 单实例保护：杀掉旧的 HMAPLUS 守护进程（仅守护模式生效，不影响 trigger 一次性调用）---
 kill_old_instances
 
+# UID 内核隐藏：按已保存的开关状态决定是否加载内核模块
+sh "$MOD_DIR/uid.sh" init >/dev/null 2>&1
+
 until [ -d "/sdcard/Android" ]; do sleep 5; done
 
-# 开机后等待 90 秒再启动，错开开机高峰
-sleep 90
+# 开机后等待 60 秒再启动，错开开机高峰
+sleep 60
 
 write_pid
 init_web_data
