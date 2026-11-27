@@ -1,303 +1,293 @@
 #!/system/bin/sh
+# HMAPLUS 常驻守护进程
+# 职责：等待存储挂载 → 初始化 WebUI 数据 → 启动冷启动监听 → 排队 → 调起一次性清理进程
+# 不直接删除目录；所有删除统一交给 clean.sh（一次性进程，完成即退出）。
+export PATH=/system/bin:/system/xbin:/data/adb/magisk:/data/adb/ksu/bin:$PATH
 
-# --- 单实例保护：杀掉旧的 HMAPLUS/service.sh 进程 ---
-# 只匹配包含 HMAPLUS/service.sh 完整路径的进程，避免误杀其他模块
+MOD_DIR="/data/adb/modules/HMAPLUS"
+WEB_DIR="$MOD_DIR/webroot"
+M_BASE="/data/media/0/Android"
+LOCAL_WHITE="$WEB_DIR/WhiteList_web.json"
+AUTO_FILE="$WEB_DIR/auto_clean.json"
+PID_FILE="$WEB_DIR/pid.txt"
+MODULE_INFO_FILE="$WEB_DIR/module_info.json"
+LOG_FILE="$WEB_DIR/hmaplusa_log.txt"
+QUEUE="$MOD_DIR/.clean_queue"
+
+# --- 单实例保护：杀掉旧的 HMAPLUS/service.sh 进程，精确匹配不误伤 ---
+SERVICE_LOCK="$MOD_DIR/.service.lock"
+
+# --- 原子单实例锁：目录创建成功才获得运行权，旧实例直接强杀 ---
+acquire_single_instance() {
+    local old
+    if mkdir "$SERVICE_LOCK" 2>/dev/null; then
+        printf '%s' "$$" > "$SERVICE_LOCK/pid" 2>/dev/null
+        return 0
+    fi
+    old=$(cat "$SERVICE_LOCK/pid" 2>/dev/null | tr -d '[:space:]')
+    if [ -n "$old" ] && [ "$old" != "$$" ] && kill -0 "$old" 2>/dev/null; then
+        kill -9 "$old" 2>/dev/null
+        sleep 1
+    fi
+    rm -rf "$SERVICE_LOCK" 2>/dev/null
+    mkdir "$SERVICE_LOCK" 2>/dev/null || exit 0
+    printf '%s' "$$" > "$SERVICE_LOCK/pid" 2>/dev/null
+}
+
 kill_old_instances() {
-    local current_pid=$$
-    # 遍历 /proc 下所有进程，匹配命令行中包含 HMAPLUS/service.sh 的进程
-    for pid_dir in /proc/[0-9]*; do
-        local pid=${pid_dir##*/}
-        [ "$pid" = "$current_pid" ] && continue
-        local cmdline=""
-        if [ -f "$pid_dir/cmdline" ]; then
-            cmdline=$(cat "$pid_dir/cmdline" 2>/dev/null | tr '\0' ' ')
-        fi
-        # 精确匹配 HMAPLUS/service.sh 路径，不误伤其他模块的 service.sh
+    local cur=$$ par=$PPID p cmdline
+    for p in /proc/[0-9]*; do
+        p=${p##*/}
+        [ "$p" = "$cur" ] && continue
+        [ "$p" = "$par" ] && continue
+        [ -f "/proc/$p/cmdline" ] || continue
+        cmdline=$(tr '\0' ' ' < "/proc/$p/cmdline" 2>/dev/null)
         case "$cmdline" in
             *HMAPLUS/service.sh*)
-                # 确认进程还存在再杀，避免误杀
-                if [ -d "/proc/$pid" ]; then
-                    kill -9 "$pid" 2>/dev/null
-                fi
+                [ -d "/proc/$p" ] && kill -9 "$p" 2>/dev/null
                 ;;
         esac
     done
 }
-# 环境配置
-export PATH=/system/bin:/system/xbin:/data/adb/magisk:/data/adb/ksu/bin:$PATH
-MOD_DIR="/data/adb/modules/HMAPLUS"
-WEB_DIR="$MOD_DIR/webroot"
-M_BASE="/data/media/0/Android"
-CONF_PATH=$(ls -d /data/misc/*hide_my_applist*/config.json 2>/dev/null | head -n1)
-LOCAL_WHITE="$WEB_DIR/WhiteList_web.json"
-FLAG_FILE="$MOD_DIR/.need_clean"
-PID_FILE="$WEB_DIR/pid.txt"
-STATS_FILE="$WEB_DIR/stats.json"
-CLEANED_FILE="$MOD_DIR/.cleaned_count"
-BLACKLIST_FILE="$WEB_DIR/blacklist.json"
-MODULE_INFO_FILE="$WEB_DIR/module_info.json"
-LOG_FILE="$WEB_DIR/hmaplusa_log.txt"
-LOG_MAX_LINES=200
 
-# 缓存变量
-LAST_CONF_TIME=0
-LAST_WHITE_TIME=0
-WHITE_LIST=""
-CACHED_LIST=""
-BLACKLIST_COUNT=0
-WHITELIST_COUNT=0
-CLEANED_COUNT=0
+# --- 统一日志格式：[时间] [级别] [来源] 消息，按大小轮转 ---
+COMPONENT="SVC"
+LOG_MAX_BYTES=131072
 
-# --- 低功耗日志函数 ---
-# 仅在事件发生时写入，无定时写入，不增加功耗
-# 格式: [时间] [类型] 消息
-log_info() {
-    local ts=$(date '+%Y-%m-%d %H:%M:%S')
-    echo "[$ts] [INFO] $1" >> "$LOG_FILE"
-    # 自动截断：超过最大行数时保留最后 N 行
-    # 仅在写入时检查一次，使用 wc + tail 一次性处理
-    local lines=$(wc -l < "$LOG_FILE" 2>/dev/null | tr -d ' ')
-    if [ -n "$lines" ] && [ "$lines" -gt "$LOG_MAX_LINES" ]; then
-        tail -n "$LOG_MAX_LINES" "$LOG_FILE" > "${LOG_FILE}.tmp"
-        mv "${LOG_FILE}.tmp" "$LOG_FILE"
+log_line() {
+    local lvl=$1; shift
+    local ts size
+    ts=$(date '+%Y-%m-%d %H:%M:%S')
+    printf '[%s] [%s] [%s] %s\n' "$ts" "$lvl" "$COMPONENT" "$*" >> "$LOG_FILE" 2>/dev/null || return 0
+    size=$(wc -c < "$LOG_FILE" 2>/dev/null | tr -d ' ')
+    if [ -n "$size" ] && [ "$size" -gt "$LOG_MAX_BYTES" ]; then
+        tail -n 600 "$LOG_FILE" > "${LOG_FILE}.tmp" 2>/dev/null \
+            && mv -f "${LOG_FILE}.tmp" "$LOG_FILE"
     fi
     chmod 666 "$LOG_FILE" 2>/dev/null
 }
 
-log_error() {
-    local ts=$(date '+%Y-%m-%d %H:%M:%S')
-    echo "[$ts] [ERROR] $1" >> "$LOG_FILE"
-    local lines=$(wc -l < "$LOG_FILE" 2>/dev/null | tr -d ' ')
-    if [ -n "$lines" ] && [ "$lines" -gt "$LOG_MAX_LINES" ]; then
-        tail -n "$LOG_MAX_LINES" "$LOG_FILE" > "${LOG_FILE}.tmp"
-        mv "${LOG_FILE}.tmp" "$LOG_FILE"
-    fi
-    chmod 666 "$LOG_FILE" 2>/dev/null
-}
-
-# --- 0. 写入PID ---
-write_pid() {
-    echo $$ > "$PID_FILE"
-    chmod 666 "$PID_FILE"
-}
-
-# --- 0.5 导出模块信息（供WebUI关于页面动态读取） ---
+# --- 导出模块信息（供 WebUI 关于页读取） ---
 export_module_info() {
     local mod_prop="$MOD_DIR/module.prop"
-    [ ! -f "$mod_prop" ] && return
-
-    local name=$(grep '^name=' "$mod_prop" | cut -d= -f2-)
-    local version=$(grep '^version=' "$mod_prop" | cut -d= -f2-)
-    local author=$(grep '^author=' "$mod_prop" | cut -d= -f2-)
-    local description=$(grep '^description=' "$mod_prop" | cut -d= -f2-)
-
-    # 转义JSON特殊字符
-    name=$(echo "$name" | sed 's/\\/\\\\/g; s/"/\\"/g')
-    version=$(echo "$version" | sed 's/\\/\\\\/g; s/"/\\"/g')
-    author=$(echo "$author" | sed 's/\\/\\\\/g; s/"/\\"/g')
-    description=$(echo "$description" | sed 's/\\/\\\\/g; s/"/\\"/g')
-
-    cat > "$MODULE_INFO_FILE" << EOF
-{"name":"$name","version":"$version","author":"$author","description":"$description"}
-EOF
-    chmod 666 "$MODULE_INFO_FILE"
+    [ -f "$mod_prop" ] || return 0
+    local name version author description
+    name=$(grep '^name=' "$mod_prop" | cut -d= -f2-)
+    version=$(grep '^version=' "$mod_prop" | cut -d= -f2-)
+    author=$(grep '^author=' "$mod_prop" | cut -d= -f2-)
+    description=$(grep '^description=' "$mod_prop" | cut -d= -f2-)
+    name=$(printf '%s' "$name" | sed 's/\\/\\\\/g; s/"/\\"/g')
+    version=$(printf '%s' "$version" | sed 's/\\/\\\\/g; s/"/\\"/g')
+    author=$(printf '%s' "$author" | sed 's/\\/\\\\/g; s/"/\\"/g')
+    description=$(printf '%s' "$description" | sed 's/\\/\\\\/g; s/"/\\"/g')
+    printf '{"name":"%s","version":"%s","author":"%s","description":"%s"}\n' \
+        "$name" "$version" "$author" "$description" > "$MODULE_INFO_FILE" 2>/dev/null
+    chmod 666 "$MODULE_INFO_FILE" 2>/dev/null
 }
 
-# --- 1. 数据初始化 ---
-init_web_data() {
-    mkdir -p "$WEB_DIR"
-
-    # 初始化日志文件
-    [ ! -f "$LOG_FILE" ] && touch "$LOG_FILE"
-    chmod 666 "$LOG_FILE"
-
-    # 白名单默认包含 bin.mt.plus
+# --- 白名单默认保护 MT 管理器 ---
+ensure_default_whitelist() {
     if [ ! -f "$LOCAL_WHITE" ] || [ ! -s "$LOCAL_WHITE" ]; then
-        echo '["bin.mt.plus"]' > "$LOCAL_WHITE"
-    else
-        # 确保已存在的情况下也包含 bin.mt.plus
-        if ! grep -q "bin.mt.plus" "$LOCAL_WHITE" 2>/dev/null; then
-            local existing=$(cat "$LOCAL_WHITE" | tr -d '\n\r ')
-            if echo "$existing" | grep -q '^\[.*\]$'; then
-                # 在数组末尾插入 bin.mt.plus
-                local new_json=$(echo "$existing" | sed 's/\]$//' | sed 's/\[\[\(\)/[/' )
-                if [ "$existing" = "[]" ]; then
-                    echo '["bin.mt.plus"]' > "$LOCAL_WHITE"
-                else
-                    echo "${existing%\]},\"bin.mt.plus\"]" > "$LOCAL_WHITE"
-                fi
-            else
-                echo '["bin.mt.plus"]' > "$LOCAL_WHITE"
-            fi
-        fi
-    fi
-    chmod 666 "$LOCAL_WHITE"
-
-    pm list packages -3 --user 0 | cut -d: -f2 | sort -u > "$WEB_DIR/app_raw.txt"
-    chmod 666 "$WEB_DIR/app_raw.txt"
-    [ ! -f "$CLEANED_FILE" ] && echo "0" > "$CLEANED_FILE"
-    chmod 666 "$CLEANED_FILE"
-}
-
-# --- 2. 解析黑名单/白名单 ---
-refresh_lists() {
-    [ ! -f "$LOCAL_WHITE" ] && init_web_data
-    [ ! -f "$CONF_PATH" ] && return 1
-
-    local c_mtime=$(stat -c %Y "$CONF_PATH" 2>/dev/null || echo 0)
-    local w_mtime=$(stat -c %Y "$LOCAL_WHITE" 2>/dev/null || echo 0)
-
-    if [ "$c_mtime" != "$LAST_CONF_TIME" ] || [ "$w_mtime" != "$LAST_WHITE_TIME" ]; then
-        CACHED_LIST=$(cat "$CONF_PATH" | tr -d '\n\r ' | grep -o '{"isWhitelist":false[^}]*}' | grep -o '"appList":\[[^]]*\]' | sed 's/"appList":\[//;s/\]//' | tr ',' '\n' | sed 's/[^a-zA-Z0-9._-]//g' | grep '\.')
-
-        if [ -n "$CACHED_LIST" ]; then
-            BLACKLIST_COUNT=$(echo "$CACHED_LIST" | wc -l | tr -d ' ')
+        printf '["bin.mt.plus"]\n' > "$LOCAL_WHITE"
+    elif ! grep -Fq '"bin.mt.plus"' "$LOCAL_WHITE" 2>/dev/null; then
+        local ex
+        ex=$(cat "$LOCAL_WHITE" 2>/dev/null | tr -d '\n\r ')
+        if [ "$ex" = "[]" ]; then
+            printf '["bin.mt.plus"]\n' > "$LOCAL_WHITE"
         else
-            BLACKLIST_COUNT=0
+            printf '%s\n' "${ex%\]},\"bin.mt.plus\"]" > "$LOCAL_WHITE"
         fi
-
-        local bl_json="["
-        local bl_first=1
-        for pkg in $CACHED_LIST; do
-            local clean_pkg=$(echo "$pkg" | tr -cd 'a-zA-Z0-9._-')
-            [ -z "$clean_pkg" ] && continue
-            if [ $bl_first -eq 1 ]; then bl_first=0; else bl_json="$bl_json,"; fi
-            bl_json="$bl_json\"$clean_pkg\""
-        done
-        bl_json="$bl_json]"
-        echo "$bl_json" > "$BLACKLIST_FILE"
-        chmod 666 "$BLACKLIST_FILE"
-
-        local raw_json=$(cat "$LOCAL_WHITE" | tr -d '\n\r ')
-        if echo "$raw_json" | grep -q "^\[.*\]$"; then
-            WHITE_LIST=$(echo "$raw_json" | tr -d '[]"' | tr ',' '\n' | sed 's/[^a-zA-Z0-9._-]//g' | grep '\.')
-            if [ -n "$WHITE_LIST" ]; then
-                WHITELIST_COUNT=$(echo "$WHITE_LIST" | wc -l | tr -d ' ')
-            else
-                WHITELIST_COUNT=0
-            fi
-        else
-            WHITE_LIST=""
-            WHITELIST_COUNT=0
-        fi
-
-        LAST_CONF_TIME=$c_mtime
-        LAST_WHITE_TIME=$w_mtime
     fi
-    return 0
+    chmod 666 "$LOCAL_WHITE" 2>/dev/null
 }
 
-# --- 2.5 读取已清理计数 ---
-load_cleaned_count() {
-    if [ -f "$CLEANED_FILE" ]; then
-        CLEANED_COUNT=$(cat "$CLEANED_FILE" | tr -d '[:space:]')
-        [ -z "$CLEANED_COUNT" ] && CLEANED_COUNT=0
+# --- 自动清理默认勾选 4 个应用 ---
+ensure_default_auto() {
+    if [ ! -f "$AUTO_FILE" ] || [ ! -s "$AUTO_FILE" ]; then
+        printf '["com.maple.detect","luna.safe.luna","com.chunqiunativecheck","com.eltavine.duckdetector"]\n' > "$AUTO_FILE"
+    fi
+    chmod 666 "$AUTO_FILE" 2>/dev/null
+}
+
+# --- 开机第 10 秒：初始化 WebUI 数据（不清理） ---
+init_web_data() {
+    mkdir -p "$WEB_DIR" 2>/dev/null
+    [ -f "$LOG_FILE" ] || : > "$LOG_FILE"
+    chmod 666 "$LOG_FILE" 2>/dev/null
+    ensure_default_whitelist
+    ensure_default_auto
+    pm list packages -3 --user 0 2>/dev/null | cut -d: -f2 | sort -u > "$WEB_DIR/app_raw.txt"
+    chmod 666 "$WEB_DIR/app_raw.txt" 2>/dev/null
+    [ -f "$MOD_DIR/.cleaned_count" ] || echo "0" > "$MOD_DIR/.cleaned_count"
+    chmod 666 "$MOD_DIR/.cleaned_count" 2>/dev/null
+    rm -f "$QUEUE" 2>/dev/null
+    # 生成 blacklist.json / stats.json 供 WebUI 读取（不删除）
+    sh "$MOD_DIR/clean.sh" lists >/dev/null 2>&1
+    # 后台生成应用名称与原生图标，不阻塞启动流程
+    sh "$MOD_DIR/appinfo.sh" >/dev/null 2>&1 &
+}
+
+# --- 从 am_proc_start / am_proc_died 行解析进程名（保留 :子进程 后缀） ---
+# 必须保留后缀：检测类应用运行中会不停起停 :xxx 子进程，
+# 若剥掉后缀会被误判成"应用打开/退出"，导致清理被反复触发。
+parse_proc() {
+    printf '%s' "$1" \
+        | grep -oE '[a-zA-Z][a-zA-Z0-9._]*(\.[a-zA-Z0-9._]+)+(:[a-zA-Z0-9._]+)?' \
+        | head -n1
+}
+
+# 该包是否仍有进程存活（含 :子进程）
+pkg_running() {
+    local pkg=$1 all
+    all=$(cat /proc/[0-9]*/cmdline 2>/dev/null | tr '\0' '\n')
+    [ -z "$all" ] && return 1
+    printf '%s\n' "$all" | grep -qx "$pkg" 2>/dev/null && return 0
+    printf '%s\n' "$all" | grep -q "^${pkg}:" 2>/dev/null && return 0
+    return 1
+}
+
+# --- 目标应用启动判定：每次生命周期只触发一次全量清理 ---
+PREV_EVENTS="$MOD_DIR/.proc_events"
+ALIVE_FILE="$MOD_DIR/.launch_alive"
+
+# 应用启动：上次触发后仍存活则跳过；否则记录并请求一次全量清理
+queue_pkg() {
+    local pkg=$1
+    [ -z "$pkg" ] && return 0
+    [ -f "$AUTO_FILE" ] || return 0
+    grep -Fq "\"$pkg\"" "$AUTO_FILE" 2>/dev/null || return 0
+    [ -f "$ALIVE_FILE" ] && grep -Fxq "$pkg" "$ALIVE_FILE" 2>/dev/null && return 0
+    printf '%s\n' "$pkg" >> "$ALIVE_FILE"
+    printf '%s\n' "$pkg" >> "$QUEUE"
+    log_line INFO "检测到目标应用启动: $pkg，触发全量清理"
+}
+
+# 应用进程退出（划掉后台/被系统回收）：解除标记，下次打开可再次触发
+release_pkg() {
+    local pkg=$1
+    [ -z "$pkg" ] && return 0
+    [ -f "$ALIVE_FILE" ] || return 0
+    grep -Fxq "$pkg" "$ALIVE_FILE" 2>/dev/null || return 0
+    # 注意：grep 无匹配时返回 1，不能用 && 串联，否则只剩一条时无法清空
+    grep -Fxv "$pkg" "$ALIVE_FILE" > "${ALIVE_FILE}.tmp" 2>/dev/null
+    mv -f "${ALIVE_FILE}.tmp" "$ALIVE_FILE" 2>/dev/null
+    chmod 666 "$ALIVE_FILE" 2>/dev/null
+    log_line INFO "目标应用已退出: $pkg（再次打开可再次清理）"
+}
+
+# 兜底校验：标记中的应用若已无对应进程，视为已退出
+verify_alive() {
+    [ -s "$ALIVE_FILE" ] || return 0
+    local pkg
+    while IFS= read -r pkg; do
+        [ -z "$pkg" ] && continue
+        pkg_running "$pkg" || release_pkg "$pkg"
+    done < "$ALIVE_FILE"
+}
+
+# --- 事件轮询：每 2 秒读取一次 events 缓冲，与上一批比对只取新增行 ---
+# 只认应用主进程；:子进程 的启停一律忽略，避免运行中被反复触发清理。
+poll_proc_events() {
+    local dump newp line proc
+    dump=$(logcat -b events -d -t 400 2>/dev/null | grep -aE 'am_proc_start|am_proc_died')
+    [ -z "$dump" ] && return 0
+
+    if [ -f "$PREV_EVENTS" ]; then
+        newp=$(printf '%s\n' "$dump" | grep -Fxv -f "$PREV_EVENTS" 2>/dev/null)
     else
-        CLEANED_COUNT=0
+        newp="$dump"
     fi
-}
+    printf '%s\n' "$dump" > "${PREV_EVENTS}.tmp" 2>/dev/null \
+        && mv -f "${PREV_EVENTS}.tmp" "$PREV_EVENTS" 2>/dev/null
+    chmod 666 "$PREV_EVENTS" 2>/dev/null
 
-# --- 2.6 写入统计数据 ---
-write_stats() {
-    load_cleaned_count
-    cat > "$STATS_FILE" << EOF
-{"pid":$$,"blacklist":$BLACKLIST_COUNT,"whitelist":$WHITELIST_COUNT,"cleaned":$CLEANED_COUNT}
-EOF
-    chmod 666 "$STATS_FILE"
-}
+    [ -z "$newp" ] && return 0
 
-# --- 3. 清理任务 ---
-clean_task() {
-    refresh_lists || return
-    # 快速路径：黑名单为空则直接返回，避免不必要的循环
-    [ -z "$CACHED_LIST" ] && return
-    [ "$BLACKLIST_COUNT" -eq 0 ] && return
-
-    local cleaned_this_round=0
-    for pkg in $CACHED_LIST; do
-        local current_pkg=$(echo "$pkg" | tr -cd 'a-zA-Z0-9._-')
-        [ -z "$current_pkg" ] && continue
-        # 白名单快速匹配
-        case " $WHITE_LIST " in
-            *" $current_pkg "*) continue ;;
+    printf '%s\n' "$newp" | while IFS= read -r line; do
+        proc=$(parse_proc "$line")
+        [ -z "$proc" ] && continue
+        case "$proc" in
+            *:*) continue ;;
         esac
-        for sub in data obb media; do
-            if [ -d "$M_BASE/$sub/$current_pkg" ]; then
-                rm -rf "$M_BASE/$sub/$current_pkg" 2>/dev/null
-                if [ $? -eq 0 ]; then
-                    log_info "已清理 $current_pkg ($sub)"
-                    cleaned_this_round=$((cleaned_this_round + 1))
-                else
-                    log_error "清理失败 $current_pkg ($sub)"
-                fi
-            fi
-        done
+        case "$line" in
+            *am_proc_start*) queue_pkg "$proc" ;;
+            *am_proc_died*)  pkg_running "$proc" || release_pkg "$proc" ;;
+        esac
     done
-
-    if [ $cleaned_this_round -gt 0 ]; then
-        load_cleaned_count
-        CLEANED_COUNT=$((CLEANED_COUNT + cleaned_this_round))
-        echo "$CLEANED_COUNT" > "$CLEANED_FILE"
-        chmod 666 "$CLEANED_FILE"
-    fi
-    write_stats
 }
 
-# --- 4. 分发 ---
-if [ "$1" = "trigger" ]; then
-    write_pid
-    export_module_info
-    refresh_lists
-    log_info "手动触发清理"
-    clean_task
-    write_stats
-    exit 0
-fi
+# --- 启动事件监听：清空旧事件，避免开机历史事件被误触发 ---
+init_proc_watch() {
+    logcat -b events -c 2>/dev/null
+    rm -f "$PREV_EVENTS" "$ALIVE_FILE" 2>/dev/null
+    log_line INFO "自动清理监听已启动（事件轮询，每 2 秒）"
+}
 
-# --- 单实例保护：杀掉旧的 HMAPLUS 守护进程（仅守护模式生效，不影响 trigger 一次性调用）---
+# --- 队列有任务即执行一次全量清理（覆盖所有黑名单应用） ---
+drain_queue() {
+    [ -s "$QUEUE" ] || return 0
+    local trigger
+    trigger=$(head -n1 "$QUEUE" 2>/dev/null)
+    : > "$QUEUE"
+    log_line INFO "由 $trigger 触发全量清理"
+    sh "$MOD_DIR/clean.sh" full >/dev/null 2>&1
+}
+
+# ========== 启动流程 ==========
+acquire_single_instance
+trap 'rm -rf "$SERVICE_LOCK"' EXIT
 kill_old_instances
 
-# UID 内核隐藏：按已保存的开关状态决定是否加载内核模块
+# UID 内核隐藏：按已保存开关状态加载（与清理解耦，UID 功能不碰）
 sh "$MOD_DIR/uid.sh" init >/dev/null 2>&1
 
+# 等待存储挂载完成
 until [ -d "/sdcard/Android" ]; do sleep 5; done
 
-# 开机后等待 60 秒再启动，错开开机高峰
-sleep 60
-
-write_pid
+# 第 10 秒：初始化 WebUI 数据并启动监听
+sleep 10
 init_web_data
 export_module_info
-log_info "模块服务启动"
-refresh_lists
-write_stats
-clean_task
+echo $$ > "$PID_FILE" 2>/dev/null
+chmod 666 "$PID_FILE" 2>/dev/null
+VER=$(grep '^version=' "$MOD_DIR/module.prop" 2>/dev/null | head -n1 | cut -d= -f2-)
+AUTO_N=$(grep -o '"' "$AUTO_FILE" 2>/dev/null | wc -l | tr -d ' '); AUTO_N=$((AUTO_N / 2))
+BL_N=$(grep -o '"' "$WEB_DIR/blacklist.json" 2>/dev/null | wc -l | tr -d ' '); BL_N=$((BL_N / 2))
+WL_N=$(grep -o '"' "$WEB_DIR/WhiteList_web.json" 2>/dev/null | wc -l | tr -d ' '); WL_N=$((WL_N / 2))
+log_line INFO "===== 服务启动 · v${VER:-?} · pid=$$ ====="
+log_line INFO "配置 · 自动清理 ${AUTO_N} 个 · 黑名单 ${BL_N} 个 · 白名单 ${WL_N} 个"
+if logcat -b events -d -t 1 >/dev/null 2>&1; then
+    log_line INFO "logcat 事件读取正常"
+else
+    log_line ERROR "logcat 事件读取失败，自动清理将无法触发"
+fi
+init_proc_watch
+WATCH_START=$(date +%s)
+FIRST_FULL_DONE=0
 
-# --- 5. 事件监听 ---
-(
-    busybox inotifyd - "$M_BASE/data":c "$M_BASE/obb":c "$M_BASE/media":c 2>/dev/null | while read -r ev dir file; do
-        touch "$FLAG_FILE" 2>/dev/null
-    done
-) 2>/dev/null &
-
-# --- 6. 主循环 ---
-# 功耗优化：inotifyd 已监听目录变化并即时触发清理
-# 因此定时检查间隔可以大幅延长，减少CPU唤醒
+# ========== 主循环：轮询启动事件 + 排空队列 + 周期刷新统计 ==========
 TICK=0
-CHECK_INTERVAL=30       # 主循环检查间隔（秒）
-FORCE_CLEAN_EVERY=600   # 强制全量清理间隔（秒），默认10分钟
 while :; do
-    if [ -f "$FLAG_FILE" ]; then
-        rm -f "$FLAG_FILE" 2>/dev/null
-        clean_task
+    poll_proc_events
+    drain_queue
+
+    # 启动约 50 秒后执行一次全量清理（后台执行，不阻塞事件监听）
+    NOW=$(date +%s)
+    if [ "$FIRST_FULL_DONE" -eq 0 ] && [ $((NOW - WATCH_START)) -ge 50 ]; then
+        FIRST_FULL_DONE=1
+        log_line INFO "首次全量清理开始"
+        sh "$MOD_DIR/clean.sh" full >/dev/null 2>&1 &
+    fi
+
+    TICK=$((TICK + 1))
+    # 每 30 秒兜底校验一次：应用已被回收则解除标记
+    if [ $((TICK % 15)) -eq 0 ]; then
+        verify_alive
+    fi
+    # 每 300 次（约 10 分钟）刷新一次列表与统计，不做清理
+    if [ "$TICK" -ge 300 ]; then
+        sh "$MOD_DIR/clean.sh" lists >/dev/null 2>&1
         TICK=0
     fi
-    TICK=$((TICK + CHECK_INTERVAL))
-    if [ $TICK -ge $FORCE_CLEAN_EVERY ]; then
-        # 仅刷新统计，不做全量清理（inotify已覆盖实时变化）
-        refresh_lists
-        write_stats
-        TICK=0
-    fi
-    sleep $CHECK_INTERVAL
+    sleep 2
 done
